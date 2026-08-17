@@ -1,0 +1,1168 @@
+[
+  {
+    "name": "filter with a single value",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "status",
+          "published"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[status]=published",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "status"
+        ],
+        "equals": "published"
+      },
+      {
+        "op": "hasFilter",
+        "args": [
+          "status"
+        ],
+        "equals": true
+      }
+    ]
+  },
+  {
+    "name": "filter with multiple values comma-joins raw",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "status",
+          [
+            "published",
+            "draft"
+          ]
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[status]=published,draft",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "status"
+        ],
+        "equals": [
+          "published",
+          "draft"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "filter with explicit \"equal\" operator emits the canonical wire key",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "title",
+          "equal",
+          "Hello World"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[title][equal]=Hello%20World",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "title",
+          "equal"
+        ],
+        "equals": "Hello World"
+      }
+    ]
+  },
+  {
+    "name": "filter accepts \"eq\" as an alias for \"equal\" on the wire",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "title",
+          "eq",
+          "Hello World"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[title][equal]=Hello%20World",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "title",
+          "eq"
+        ],
+        "equals": "Hello World"
+      },
+      {
+        "op": "getFilter",
+        "args": [
+          "title",
+          "equal"
+        ],
+        "equals": "Hello World"
+      }
+    ]
+  },
+  {
+    "name": "filter with gt/lt operators",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "review_points",
+          "gt",
+          4
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[review_points][gt]=4"
+  },
+  {
+    "name": "between sugars into a gte+lte range filter",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "between",
+        "args": [
+          "due_at",
+          "2024-01-01",
+          "2024-01-31"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[due_at][gte]=2024-01-01&filter[due_at][lte]=2024-01-31",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "due_at",
+          "gte"
+        ],
+        "equals": "2024-01-01"
+      },
+      {
+        "op": "getFilter",
+        "args": [
+          "due_at",
+          "lte"
+        ],
+        "equals": "2024-01-31"
+      },
+      {
+        "op": "hasFilter",
+        "args": [
+          "due_at",
+          "gte"
+        ],
+        "equals": true
+      }
+    ]
+  },
+  {
+    "name": "multi-operator range built from two filter() calls",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "due_at",
+          "gte",
+          "2024-01-01"
+        ]
+      },
+      {
+        "op": "filter",
+        "args": [
+          "due_at",
+          "lte",
+          "2024-01-31"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[due_at][gte]=2024-01-01&filter[due_at][lte]=2024-01-31",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "due_at",
+          "gte"
+        ],
+        "equals": "2024-01-01"
+      },
+      {
+        "op": "getFilter",
+        "args": [
+          "due_at",
+          "lte"
+        ],
+        "equals": "2024-01-31"
+      },
+      {
+        "op": "toParams",
+        "args": [],
+        "equals": {
+          "filter": {
+            "due_at": {
+              "gte": "2024-01-01",
+              "lte": "2024-01-31"
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "filterScope sends a truthy toggle",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "filterScope",
+        "args": [
+          "published"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[published]=1",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "published"
+        ],
+        "equals": "1"
+      }
+    ]
+  },
+  {
+    "name": "filterScope with named arguments",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "filterScope",
+        "args": [
+          "between",
+          {
+            "min": 10,
+            "max": 50
+          }
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[between][min]=10&filter[between][max]=50",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "between",
+          "min"
+        ],
+        "equals": "10"
+      },
+      {
+        "op": "getFilter",
+        "args": [
+          "between",
+          "max"
+        ],
+        "equals": "50"
+      }
+    ]
+  },
+  {
+    "name": "filterScope with the _scoped suffix option",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "filterScope",
+        "args": [
+          "published",
+          null,
+          {
+            "scoped": true
+          }
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[published_scoped]=1",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "published_scoped"
+        ],
+        "equals": "1"
+      }
+    ]
+  },
+  {
+    "name": "removeFilter drops only the targeted attribute",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "status",
+          "published"
+        ]
+      },
+      {
+        "op": "filter",
+        "args": [
+          "title",
+          "similar"
+        ]
+      },
+      {
+        "op": "removeFilter",
+        "args": [
+          "status"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[title]=similar",
+    "reads": [
+      {
+        "op": "hasFilter",
+        "args": [
+          "status"
+        ],
+        "equals": false
+      },
+      {
+        "op": "hasFilter",
+        "args": [
+          "title"
+        ],
+        "equals": true
+      }
+    ]
+  },
+  {
+    "name": "removeFilter with an operator removes only that operator entry",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "due_at",
+          "gte",
+          "2024-01-01"
+        ]
+      },
+      {
+        "op": "filter",
+        "args": [
+          "due_at",
+          "lte",
+          "2024-01-31"
+        ]
+      },
+      {
+        "op": "removeFilter",
+        "args": [
+          "due_at",
+          "gte"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[due_at][lte]=2024-01-31",
+    "reads": [
+      {
+        "op": "hasFilter",
+        "args": [
+          "due_at",
+          "gte"
+        ],
+        "equals": false
+      },
+      {
+        "op": "hasFilter",
+        "args": [
+          "due_at",
+          "lte"
+        ],
+        "equals": true
+      }
+    ]
+  },
+  {
+    "name": "sort ascending (no prefix)",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "sort",
+        "args": [
+          "title"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?sort=title",
+    "reads": [
+      {
+        "op": "getSorts",
+        "args": [],
+        "equals": [
+          {
+            "attribute": "title",
+            "direction": "asc"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "sort descending via leading dash",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "sort",
+        "args": [
+          "-created_at"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?sort=-created_at",
+    "reads": [
+      {
+        "op": "getSorts",
+        "args": [],
+        "equals": [
+          {
+            "attribute": "created_at",
+            "direction": "desc"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "sortDesc sugar",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "sortDesc",
+        "args": [
+          "created_at"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?sort=-created_at",
+    "reads": [
+      {
+        "op": "getSorts",
+        "args": [],
+        "equals": [
+          {
+            "attribute": "created_at",
+            "direction": "desc"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "sorts accumulate across calls in call order",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "sort",
+        "args": [
+          "title"
+        ]
+      },
+      {
+        "op": "sortDesc",
+        "args": [
+          "created_at"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?sort=title,-created_at",
+    "reads": [
+      {
+        "op": "getSorts",
+        "args": [],
+        "equals": [
+          {
+            "attribute": "title",
+            "direction": "asc"
+          },
+          {
+            "attribute": "created_at",
+            "direction": "desc"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "sort by relationship attribute (dot path)",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "sort",
+        "args": [
+          "-author.name"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?sort=-author.name"
+  },
+  {
+    "name": "include comma-joins, supports dot paths and _count suffix",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "include",
+        "args": [
+          "author.reviews",
+          "tags_count"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?include=author.reviews,tags_count",
+    "reads": [
+      {
+        "op": "getIncludes",
+        "args": [],
+        "equals": [
+          "author.reviews",
+          "tags_count"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "include accumulates across calls without duplicates",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "include",
+        "args": [
+          "tags"
+        ]
+      },
+      {
+        "op": "include",
+        "args": [
+          "author",
+          "tags"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?include=tags,author",
+    "reads": [
+      {
+        "op": "getIncludes",
+        "args": [],
+        "equals": [
+          "tags",
+          "author"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "fields selects sparse columns per resource type",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "fields",
+        "args": [
+          "post",
+          "title",
+          "body"
+        ]
+      },
+      {
+        "op": "fields",
+        "args": [
+          "user",
+          "name"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?fields[post]=title,body&fields[user]=name",
+    "reads": [
+      {
+        "op": "getFields",
+        "args": [
+          "post"
+        ],
+        "equals": [
+          "title",
+          "body"
+        ]
+      },
+      {
+        "op": "getFields",
+        "args": [],
+        "equals": {
+          "post": [
+            "title",
+            "body"
+          ],
+          "user": [
+            "name"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "append uses the plural \"appends\" wire key",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "append",
+        "args": [
+          "post",
+          "is_featured",
+          "reading_time"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?appends[post]=is_featured,reading_time",
+    "reads": [
+      {
+        "op": "getAppends",
+        "args": [
+          "post"
+        ],
+        "equals": [
+          "is_featured",
+          "reading_time"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "page/pageSize/pageCursor set page[number|size|cursor]",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "page",
+        "args": [
+          2
+        ]
+      },
+      {
+        "op": "pageSize",
+        "args": [
+          25
+        ]
+      },
+      {
+        "op": "pageCursor",
+        "args": [
+          "abc123"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?page[number]=2&page[size]=25&page[cursor]=abc123",
+    "reads": [
+      {
+        "op": "getPage",
+        "args": [],
+        "equals": 2
+      },
+      {
+        "op": "getPageSize",
+        "args": [],
+        "equals": 25
+      },
+      {
+        "op": "getPageCursor",
+        "args": [],
+        "equals": "abc123"
+      }
+    ]
+  },
+  {
+    "name": "search sets the q= term",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "search",
+        "args": [
+          "laravel"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?q=laravel",
+    "reads": [
+      {
+        "op": "getSearch",
+        "args": [],
+        "equals": "laravel"
+      }
+    ]
+  },
+  {
+    "name": "searchFilter with a single value uses the plain q[filter][attr] key",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "search",
+        "args": [
+          "laravel"
+        ]
+      },
+      {
+        "op": "searchFilter",
+        "args": [
+          "status",
+          "published"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?q=laravel&q[filter][status]=published",
+    "reads": [
+      {
+        "op": "getSearchFilter",
+        "args": [
+          "status"
+        ],
+        "equals": "published"
+      }
+    ]
+  },
+  {
+    "name": "searchFilter with multiple values uses repeated q[filter][attr][] keys",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "search",
+        "args": [
+          "laravel"
+        ]
+      },
+      {
+        "op": "searchFilter",
+        "args": [
+          "status",
+          [
+            "published",
+            "draft"
+          ]
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?q=laravel&q[filter][status][]=published&q[filter][status][]=draft",
+    "reads": [
+      {
+        "op": "getSearchFilter",
+        "args": [
+          "status"
+        ],
+        "equals": [
+          "published",
+          "draft"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "param sets an arbitrary raw query parameter",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "param",
+        "args": [
+          "debug",
+          "1"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?debug=1"
+  },
+  {
+    "name": "removeParam clears a whole known bucket",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "status",
+          "published"
+        ]
+      },
+      {
+        "op": "sort",
+        "args": [
+          "title"
+        ]
+      },
+      {
+        "op": "removeParam",
+        "args": [
+          "sort"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[status]=published",
+    "reads": [
+      {
+        "op": "getSorts",
+        "args": [],
+        "equals": []
+      },
+      {
+        "op": "hasFilter",
+        "args": [
+          "status"
+        ],
+        "equals": true
+      }
+    ]
+  },
+  {
+    "name": "removeParam removes a raw param by key",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "param",
+        "args": [
+          "debug",
+          "1"
+        ]
+      },
+      {
+        "op": "removeParam",
+        "args": [
+          "debug"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts"
+  },
+  {
+    "name": "clear resets every param but keeps the base path",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "status",
+          "published"
+        ]
+      },
+      {
+        "op": "sort",
+        "args": [
+          "title"
+        ]
+      },
+      {
+        "op": "clear",
+        "args": []
+      }
+    ],
+    "url": "https://api.example.com/posts"
+  },
+  {
+    "name": "pathname is preserved (v1 dropped it entirely)",
+    "base": "https://api.example.com/api/v1/posts",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "status",
+          "published"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/api/v1/posts?filter[status]=published"
+  },
+  {
+    "name": "non-default port is preserved",
+    "base": "https://api.example.com:8443/posts",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "status",
+          "published"
+        ]
+      }
+    ],
+    "url": "https://api.example.com:8443/posts?filter[status]=published"
+  },
+  {
+    "name": "hash fragment is preserved and stays at the end of the URL",
+    "base": "https://api.example.com/posts#comments",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "status",
+          "published"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[status]=published#comments"
+  },
+  {
+    "name": "existing (unknown) query params on the base URL are preserved",
+    "base": "https://api.example.com/posts?foo=bar",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "status",
+          "published"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?foo=bar&filter[status]=published",
+    "reads": [
+      {
+        "op": "hasFilter",
+        "args": [
+          "status"
+        ],
+        "equals": true
+      }
+    ]
+  },
+  {
+    "name": "a bare builder with no base renders just a query string",
+    "base": "",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "status",
+          "published"
+        ]
+      }
+    ],
+    "url": "?filter[status]=published"
+  },
+  {
+    "name": "a value containing a literal comma is percent-encoded to avoid the OR-separator",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "title",
+          "a,b"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[title]=a%2Cb",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "title"
+        ],
+        "equals": "a,b"
+      }
+    ]
+  },
+  {
+    "name": "a comma inside one item of a multi-value array is escaped, the separator commas stay raw",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "title",
+          [
+            "a,b",
+            "c"
+          ]
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[title]=a%2Cb,c",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "title"
+        ],
+        "equals": [
+          "a,b",
+          "c"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "a value containing brackets, spaces and a literal percent sign is fully percent-encoded",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "title",
+          "a[b] c%d"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[title]=a%5Bb%5D%20c%25d",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "title"
+        ],
+        "equals": "a[b] c%d"
+      }
+    ]
+  },
+  {
+    "name": "a value containing an \"=\" round-trips without being mistaken for a key/value separator",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "code",
+          "a=b&c"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[code]=a%3Db%26c",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "code"
+        ],
+        "equals": "a=b&c"
+      }
+    ]
+  },
+  {
+    "name": "parsing normalises apiable's own percent-encoded bracket links to raw brackets",
+    "base": "http://localhost:8000/api/films?page%5Bnumber%5D=2&page%5Bsize%5D=25",
+    "build": [],
+    "url": "http://localhost:8000/api/films?page[number]=2&page[size]=25",
+    "reads": [
+      {
+        "op": "getPage",
+        "args": [],
+        "equals": 2
+      },
+      {
+        "op": "getPageSize",
+        "args": [],
+        "equals": 25
+      }
+    ]
+  },
+  {
+    "name": "parsing a percent-encoded in-value comma round-trips the exact value",
+    "base": "https://api.example.com/posts?filter[title]=a%2Cb",
+    "build": [],
+    "url": "https://api.example.com/posts?filter[title]=a%2Cb",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "title"
+        ],
+        "equals": "a,b"
+      }
+    ]
+  },
+  {
+    "name": "a raw comma in a parsed value is treated as the OR-separator, not literal content",
+    "base": "https://api.example.com/posts?filter[status]=published,draft",
+    "build": [],
+    "url": "https://api.example.com/posts?filter[status]=published,draft",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "status"
+        ],
+        "equals": [
+          "published",
+          "draft"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "reading a scoped filter's named arguments back off a parsed URL",
+    "base": "https://api.example.com/posts?filter[between][min]=10&filter[between][max]=50",
+    "build": [],
+    "url": "https://api.example.com/posts?filter[between][min]=10&filter[between][max]=50",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "between",
+          "min"
+        ],
+        "equals": "10"
+      },
+      {
+        "op": "getFilter",
+        "args": [
+          "between",
+          "max"
+        ],
+        "equals": "50"
+      }
+    ]
+  },
+  {
+    "name": "toParams() on a fully-populated parsed URL mirrors the wire's nested bracket structure",
+    "base": "https://api.example.com/posts?filter[status]=published,draft&filter[due_at][gte]=2024-01-01&filter[due_at][lte]=2024-01-31&sort=title,-created_at&include=tags,author&fields[post]=title,body&appends[post]=is_featured&page[number]=2&page[size]=25&q=laravel&q[filter][status]=published",
+    "build": [],
+    "url": "https://api.example.com/posts?filter[status]=published,draft&filter[due_at][gte]=2024-01-01&filter[due_at][lte]=2024-01-31&sort=title,-created_at&include=tags,author&fields[post]=title,body&appends[post]=is_featured&page[number]=2&page[size]=25&q=laravel&q[filter][status]=published",
+    "reads": [
+      {
+        "op": "toParams",
+        "args": [],
+        "equals": {
+          "filter": {
+            "status": "published,draft",
+            "due_at": {
+              "gte": "2024-01-01",
+              "lte": "2024-01-31"
+            }
+          },
+          "sort": "title,-created_at",
+          "include": "tags,author",
+          "fields": {
+            "post": "title,body"
+          },
+          "appends": {
+            "post": "is_featured"
+          },
+          "page": {
+            "number": "2",
+            "size": "25"
+          },
+          "q": {
+            "value": "laravel",
+            "filter": {
+              "status": "published"
+            }
+          }
+        }
+      }
+    ]
+  }
+]
