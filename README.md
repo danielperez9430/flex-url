@@ -1,7 +1,7 @@
 # Flex Url
 
 > **v2 in progress.** This branch is a ground-up rewrite — see
-> `packages/flex-url/CHANGELOG.md` and `packages/php/CHANGELOG.md` for what's
+> `packages/js/CHANGELOG.md` and `packages/php/CHANGELOG.md` for what's
 > landed so far. The published 1.x line lives in git history on `main`.
 
 Flex Url is a zero-dependency URL builder/parser for the apiable request
@@ -11,7 +11,7 @@ mirrored PHP package (`open-southeners/flex-url`) in this monorepo.
 
 ## Packages
 
-- [`packages/flex-url`](packages/flex-url) — TypeScript core, published as
+- [`packages/js`](packages/js) — TypeScript core, published as
   `@open-southeners/flex-url` on npm.
 - [`packages/php`](packages/php) — PHP mirror, published as
   `open-southeners/flex-url` on Packagist.

@@ -13,7 +13,7 @@ use Stringable;
  * the apiable request-query grammar (`filter`, `sort`, `include`, `fields`,
  * `appends`, `page`, `q`). PHP mirror of `@open-southeners/flex-url`'s
  * `FlexUrl` class — method names/semantics are kept identical on purpose, see
- * `packages/flex-url/src/flex-url.ts`.
+ * `packages/js/src/flex-url.ts`.
  *
  * ```php
  * use function OpenSoutheners\FlexUrl\flex_url;

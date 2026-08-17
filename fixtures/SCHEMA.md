@@ -1,7 +1,7 @@
 # Shared fixture schema
 
 `cases.json` is a language-neutral table of canonical build/read cases, shared
-by the Vitest suite (`packages/flex-url`) and the PHPUnit suite
+by the Vitest suite (`packages/js`) and the PHPUnit suite
 (`packages/php`) so the two implementations can't drift silently. This file
 documents the intended shape; `cases.json` itself starts empty — A2/A3 (the
 core implementations) populate it once the builder API is frozen.
