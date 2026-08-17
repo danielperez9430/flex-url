@@ -1,24 +1,16 @@
 {
-    "compileOnSave": false,
-    "compilerOptions": {
-        "target": "ESNext",
-        "module": "ESNext",
-        "strict": true,
-        "declaration": true,
-        "moduleResolution": "node",
-        "types": [
-            "mocha",
-            "chai"
-        ],
-        "lib": [
-            "DOM",
-            "ES2017"
-        ]
-    },
-    "include": [
-        "src/*.ts"
-    ],
-    "exclude": [
-        "tests/*.ts"
-    ]
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "declaration": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true
+  },
+  "include": ["src", "tests"]
 }
