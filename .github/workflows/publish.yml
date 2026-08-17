@@ -1,20 +1,41 @@
+# NOTE: untested. This is a minimal, best-effort publish workflow for the v2
+# reset (see A1 in the flex-url tooling plan) — it has not been run against a
+# real tag yet. Review carefully before relying on it for a real release.
 name: Publish
 
 on:
-  release:
-    types: [ created ]
+  push:
+    tags:
+      - "flex-url-v*"
 
 jobs:
-  build:
+  npm:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/flex-url
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: 14
-          registry-url: 'https://registry.npmjs.org'
-          cache: 'yarn'
-      - run: yarn install
-      - run: npm publish --access public
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        working-directory: .
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm run test
+
+      - name: Publish to npm
+        run: npm publish --access public --tag next
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

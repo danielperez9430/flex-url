@@ -1,34 +1,26 @@
 {
-  "name": "flexurl",
+  "name": "flex-url",
   "private": true,
+  "description": "Zero-dependency URL builder/parser for the apiable request grammar (JS + PHP mirror)",
   "homepage": "https://flex-url.opensoutheners.com",
   "license": "MIT",
   "type": "module",
   "workspaces": [
-    "docs",
     "packages/*"
   ],
   "scripts": {
-    "build": "yarn turbo run build",
-    "test": "yarn turbo run test"
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "eslint ."
   },
   "devDependencies": {
-    "@types/chai": "^4.2.22",
-    "@types/mocha": "^10.0.0",
-    "@types/node": "^16.11.10",
-    "c8": "^7.12.0",
-    "chai": "^4.3.4",
-    "lerna": "^6.0.3",
-    "microbundle": "^0.14.2",
-    "mocha": "^10.1.0",
-    "npm-run-all": "^4.1.5",
-    "rimraf": "^3.0.2",
-    "ts-node": "^10.4.0",
-    "turbo": "^1.6.3",
-    "typescript": "^4.9.3"
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.0"
   },
-  "packageManager": "yarn@3.3.0",
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=20.0.0"
   }
 }

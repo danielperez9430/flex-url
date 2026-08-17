@@ -1,6 +1,0 @@
-{
-  "space": true,
-  "rules": {
-    "@typescript-eslint/naming-convention": "off"
-  }
-}
