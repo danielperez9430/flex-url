@@ -117,6 +117,28 @@ class FlexUrlTest extends TestCase
         $this->assertSame('/posts', FlexUrl::make('/posts')->toRequestUri());
     }
 
+    public function test_to_relative_url_drops_the_origin_but_keeps_the_hash(): void
+    {
+        $built = FlexUrl::make('https://api.example.com/api/v1/posts#comments')->filter('status', 'published');
+
+        $this->assertSame('/api/v1/posts?filter[status]=published#comments', $built->toRelativeUrl());
+        // The one difference from toRequestUri(): a fragment is client-side
+        // navigation, so it survives here and is dropped there.
+        $this->assertSame('/api/v1/posts?filter[status]=published', $built->toRequestUri());
+    }
+
+    public function test_to_relative_url_drops_a_non_default_port_along_with_the_origin(): void
+    {
+        $built = FlexUrl::make('http://localhost:8000/projects?page[number]=2')->filter('status', 'active');
+
+        $this->assertSame('/projects?page[number]=2&filter[status]=active', $built->toRelativeUrl());
+    }
+
+    public function test_to_relative_url_with_no_query_is_just_the_pathname(): void
+    {
+        $this->assertSame('/posts', FlexUrl::make('/posts')->toRelativeUrl());
+    }
+
     // -----------------------------------------------------------------
     // Operator alias normalisation
     // -----------------------------------------------------------------

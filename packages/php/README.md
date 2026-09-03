@@ -213,6 +213,28 @@ $request = Illuminate\Http\Request::create($flexUrl->toRequestUri(), 'GET');
 $response = app(Illuminate\Contracts\Http\Kernel::class)->handle($request);
 ```
 
+`toQuery()` is the one method with no TypeScript counterpart: it is `parse_str()` semantics
+(what Laravel itself will see), whereas `toParams()` is grammar-aware. Nothing in a browser asks
+that question, so the TypeScript package doesn't answer it.
+
+### `toRelativeUrl()` for redirects and `href`s
+
+`toRequestUri()` drops the fragment, because fragments are never sent to the server. When you're
+producing a link or a redirect target rather than a request, use `toRelativeUrl()` — same string,
+fragment preserved, still no origin:
+
+```php
+$flexUrl = FlexUrl::make('https://app.example.com/projects#activity')->filter('status', 'active');
+
+$flexUrl->toRelativeUrl(); // "/projects?filter[status]=active#activity"
+$flexUrl->toRequestUri();  // "/projects?filter[status]=active"
+
+return redirect()->to($flexUrl->toRelativeUrl());
+```
+
+The TypeScript package has the same method with the same semantics, for `router.visit()` and
+`history.pushState()`.
+
 ## Accepting PSR-7 / requests
 
 `FlexUrl::from()` accepts a plain `string` or anything `Stringable` — this covers PSR-7's

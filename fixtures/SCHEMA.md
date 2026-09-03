@@ -28,7 +28,7 @@ Each entry in the top-level array is a case object:
     { "op": "sort", "args": ["-created_at"] }
   ],
 
-  // The exact string both `toString()` (TS) and `__toString()`/`->toUrl()`
+  // The exact string both `toString()` (TS) and `toString()`/`__toString()`
   // (PHP) must produce after applying every `build` step, in order, to
   // `base`.
   "url": "https://api.example.com/posts?filter[status]=published,draft&sort=-created_at",
@@ -64,5 +64,12 @@ Notes:
   returns `undefined` for the same state, so the TypeScript runner normalises
   `undefined` to `null` before comparing — a fixture can't distinguish the
   two, and shouldn't try to.
+- `reads` may target any zero-argument output method the two packages share
+  (`toString`, `toRequestUri`, `toRelativeUrl`, `toParams`), not just the
+  getters. A method that exists in only one package — PHP's `toQuery()`, which
+  is `parse_str` semantics with no browser-side counterpart — never appears in
+  a fixture; cover it in that package's own suite. Needing a per-language
+  `equals` would be a signal that the mirrored API has drifted, not a reason
+  to add one.
 - Keep descriptors minimal: one call per array entry, no nesting/branching.
   A case that needs conditional logic belongs as multiple cases instead.

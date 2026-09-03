@@ -85,6 +85,10 @@ parsed.getPageCursor();                // string | undefined
 parsed.getSearch();                    // string | undefined
 parsed.getSearchFilter('status');      // string | string[] | undefined
 parsed.toParams();                     // nested object form, see below
+
+parsed.toString();                     // full URL, origin included — the round-trip form
+parsed.toRelativeUrl();                // "pathname?query#hash" — for client-side navigation
+parsed.toRequestUri();                 // "pathname?query" — what reaches the server
 ```
 
 Omitting `operator` on `hasFilter()`/`getFilter()` checks/reads the plain (bracket-less)
@@ -239,6 +243,45 @@ Works with apiable's three pagination strategies: length-aware (full `links`/`me
 `links.last`/`meta.current_page`/`meta.total` are `null`/absent). No resource deserialisation —
 pair this with a JSON:API client such as [jsona](https://github.com/olosegres/jsona) for `data`/
 `included`.
+
+## Navigating with the result (Inertia, vue-router, history API)
+
+`toString()` renders the full URL — origin included, when you started from one — and is the
+round-trip form. For client-side navigation use `toRelativeUrl()` (`pathname?query#hash`, never
+the origin), which is what `router.visit()`, `history.pushState()` and vue-router expect:
+
+```ts
+const next = flexUrl(window.location.href).filter('status', 'active').page(1);
+
+router.visit(next.toRelativeUrl(), {preserveState: true, preserveScroll: true}); // Inertia
+history.replaceState(null, '', next.toRelativeUrl());                            // history API
+router.push(next.toRelativeUrl());                                               // vue-router
+```
+
+`history.pushState()`/`replaceState()` throw a `SecurityError` when the origin differs from the
+document's — which is what happens as soon as you build from an API URL
+(`flexUrl('https://api.example.com/posts')`) and want the app's own address bar to reflect the
+filters. `toRelativeUrl()` has no origin to clash.
+
+Pass every parameter through flex-url rather than Inertia's `data` option: `router.visit(url,
+{data})` re-serialises the whole query string through `qs`, which percent-encodes the commas
+apiable expects raw.
+
+`toRequestUri()` is the same string without the fragment (`pathname?query`) — the part that
+actually reaches the server — and mirrors the PHP package's `toRequestUri()`.
+
+## Upgrading from 1.x
+
+v1's `FlexibleUrl` kept only the origin of the URL you constructed it from, so
+`router.visit(url.toString())` navigated to `/`. If you worked around that with something like
+
+```ts
+router.visit(window.location.pathname + '?' + url.toString().split('?')[1]);
+```
+
+replace it with `router.visit(url.toRelativeUrl())`. The workaround still runs on v2, but it is
+now redundant (the pathname is preserved), it produces `/path?undefined` when no parameters are
+set, and it mangles the hash.
 
 ## PHP mirror
 

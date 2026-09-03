@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`toRelativeUrl()`** — `pathname?query#hash`, the fragment-preserving
+  counterpart of `toRequestUri()` for redirect targets and Blade `href`s
+  (mirrors the TypeScript package's method of the same name).
 - New `open-southeners/flex-url` package: an immutable, fluent `FlexUrl`
   builder/parser for the apiable request-query grammar — the PHP mirror of
   `@open-southeners/flex-url`, with identical method names and wire semantics.

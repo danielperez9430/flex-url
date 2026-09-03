@@ -1396,5 +1396,122 @@
         ]
       }
     ]
+  },
+  {
+    "name": "toRequestUri drops origin and hash, toRelativeUrl keeps the hash",
+    "base": "https://api.example.com/api/v1/posts#comments",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "status",
+          "published"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/api/v1/posts?filter[status]=published#comments",
+    "reads": [
+      {
+        "op": "toRequestUri",
+        "args": [],
+        "equals": "/api/v1/posts?filter[status]=published"
+      },
+      {
+        "op": "toRelativeUrl",
+        "args": [],
+        "equals": "/api/v1/posts?filter[status]=published#comments"
+      }
+    ]
+  },
+  {
+    "name": "the relative forms drop a non-default port along with the origin",
+    "base": "http://localhost:8000/projects?page[number]=2#activity",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "status",
+          "active"
+        ]
+      }
+    ],
+    "url": "http://localhost:8000/projects?page[number]=2&filter[status]=active#activity",
+    "reads": [
+      {
+        "op": "toRelativeUrl",
+        "args": [],
+        "equals": "/projects?page[number]=2&filter[status]=active#activity"
+      },
+      {
+        "op": "toRequestUri",
+        "args": [],
+        "equals": "/projects?page[number]=2&filter[status]=active"
+      }
+    ]
+  },
+  {
+    "name": "the relative forms render just the pathname when there are no params",
+    "base": "/posts",
+    "build": [],
+    "url": "/posts",
+    "reads": [
+      {
+        "op": "toRequestUri",
+        "args": [],
+        "equals": "/posts"
+      },
+      {
+        "op": "toRelativeUrl",
+        "args": [],
+        "equals": "/posts"
+      }
+    ]
+  },
+  {
+    "name": "the relative forms on a bare builder render just the query string",
+    "base": "",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "status",
+          "published"
+        ]
+      }
+    ],
+    "url": "?filter[status]=published",
+    "reads": [
+      {
+        "op": "toRequestUri",
+        "args": [],
+        "equals": "?filter[status]=published"
+      },
+      {
+        "op": "toRelativeUrl",
+        "args": [],
+        "equals": "?filter[status]=published"
+      }
+    ]
+  },
+  {
+    "name": "the relative forms keep percent-encoded values verbatim",
+    "base": "/posts",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "title",
+          "a,b"
+        ]
+      }
+    ],
+    "url": "/posts?filter[title]=a%2Cb",
+    "reads": [
+      {
+        "op": "toRequestUri",
+        "args": [],
+        "equals": "/posts?filter[title]=a%2Cb"
+      }
+    ]
   }
 ]
