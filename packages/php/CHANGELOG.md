@@ -9,23 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `addFilterValue()`, `removeFilterValue()` and `toggleFilterValue()` operate on a
-  filter's individual values instead of replacing the whole list, and removing the
-  last value removes the filter. Every multi-select filter UI was hand-rolling this
-  on top of `getFilter()`, and `removeFilter(attribute, value)` looks like it should
-  do it but silently does nothing — its second argument is an operator.
-- `getFilters()` returns every filter as `{attribute, operator, values}` entries, in
-  wire order — the plural counterpart to `getFilter()`, mirroring `getSorts()`.
-- `getParam()` reads a raw param, with bracket syntax for nested ones. `param()` could
-  write and `removeParam()` could remove, but nothing could read, so callers had to go
-  through `toParams()` and re-derive the value from its wire form.
+- `addFilterValue()`, `removeFilterValue()` and `toggleFilterValue()` operate
+  on a filter's individual values instead of replacing the whole list, and
+  removing the last value removes the filter. Every multi-select filter UI was
+  hand-rolling this on top of `getFilter()`, and the `removeFilter()` that
+  looks like it should do it takes an *operator* as its second argument, so it
+  silently does nothing.
+- `getFilters()` returns every filter as `{attribute, operator, values}`
+  entries, in wire order — the plural counterpart to `getFilter()`, mirroring
+  `getSorts()`.
+- `getParam()` reads a raw param, with bracket syntax for nested ones.
+  `param()` could write and `removeParam()` could remove, but nothing could
+  read, so callers had to go through `toParams()` and re-derive the value
+  from its wire form.
 
 ### Fixed
 
-- `removeParam()` now reaches nested raw params: `removeParam('custom_sort[lang]')`
-  removes that one entry, and the bare `removeParam('custom_sort')` removes every
-  `custom_sort[...]` under it. Previously both were silent no-ops, leaving a
-  parsed nested raw param with no way to remove it at all.
+- `removeParam()` now reaches nested raw params:
+  `removeParam('custom_sort[lang]')` removes that one entry, and the bare
+  `removeParam('custom_sort')` removes every `custom_sort[...]` under it.
+  Previously both were silent no-ops, leaving a parsed nested raw param with
+  no way to remove it at all.
 
 ## [2.0.0] - 2026-09-03
 
