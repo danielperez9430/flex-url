@@ -257,11 +257,23 @@ final readonly class FlexUrl implements Stringable
     // Output
     // ---------------------------------------------------------------------
 
-    public function toString(): string
+    /** `pathname?query` — shared by the three output forms. */
+    private function renderPathAndQuery(): string
     {
         $query = State::buildQueryString($this->state);
 
-        return "{$this->state->origin}{$this->state->pathname}".($query !== '' ? "?{$query}" : '').$this->state->hash;
+        return $this->state->pathname.($query !== '' ? "?{$query}" : '');
+    }
+
+    /**
+     * The full URL, including the origin when the builder was constructed
+     * from one. This is the round-trip form: `FlexUrl::make($x)->toString()`
+     * parses back to the same state. For a `href`/redirect target use
+     * `toRelativeUrl()`.
+     */
+    public function toString(): string
+    {
+        return $this->state->origin.$this->renderPathAndQuery().$this->state->hash;
     }
 
     public function __toString(): string
@@ -366,12 +378,24 @@ final readonly class FlexUrl implements Stringable
      * `pathname?query` (no scheme/host/fragment — fragments are never sent
      * to the server), matching `Illuminate\Http\Request::getRequestUri()`'s
      * shape. Pair with `toQuery()` to dispatch an in-kernel sub-request.
+     *
+     * For the fragment-preserving form (a Blade `href`, a redirect target)
+     * use `toRelativeUrl()`.
      */
     public function toRequestUri(): string
     {
-        $query = State::buildQueryString($this->state);
+        return $this->renderPathAndQuery();
+    }
 
-        return $this->state->pathname.($query !== '' ? "?{$query}" : '');
+    /**
+     * `pathname?query#hash` — origin-relative, fragment preserved. The form
+     * to hand to `redirect()->to()` or a Blade `href`, where the fragment is
+     * client-side navigation and must survive. Mirrors the TypeScript
+     * package's `toRelativeUrl()` exactly.
+     */
+    public function toRelativeUrl(): string
+    {
+        return $this->renderPathAndQuery().$this->state->hash;
     }
 
     // ---------------------------------------------------------------------

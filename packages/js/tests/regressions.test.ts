@@ -22,6 +22,24 @@ describe('v1 regressions', () => {
     expect(built.toString()).toBe('https://api.example.com/api/v1/posts?filter[status]=published');
   });
 
+  it('renders an origin-relative URL for client-side navigation (v1 sent router.visit() to "/")', () => {
+    // The shape an Inertia/vue-router app actually navigates with: v1 kept only
+    // the origin, so `router.visit(url.toString())` landed on the domain root.
+    const built = flexUrl('https://app.example.com/projects?page[number]=2#activity').filter('status', 'active');
+
+    expect(built.toRelativeUrl()).toBe('/projects?page[number]=2&filter[status]=active#activity');
+    expect(built.toRelativeUrl()).not.toContain('https://');
+
+    // toRequestUri() is the same string minus the fragment — what reaches the server.
+    expect(built.toRequestUri()).toBe('/projects?page[number]=2&filter[status]=active');
+    expect(built.toRequestUri()).not.toContain('#');
+  });
+
+  it('renders just the pathname when there are no params (no dangling "?")', () => {
+    expect(flexUrl('/posts').toRelativeUrl()).toBe('/posts');
+    expect(flexUrl('/posts').toRequestUri()).toBe('/posts');
+  });
+
   it('removes a filter by attribute regardless of registration order (no falsy-index bug)', () => {
     const withThree = flexUrl('/posts').filter('a', '1').filter('b', '2').filter('c', '3');
 

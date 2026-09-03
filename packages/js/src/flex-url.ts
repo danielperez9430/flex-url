@@ -299,10 +299,46 @@ export class FlexUrl<S extends EndpointSchema | undefined = undefined> {
   // Output
   // ---------------------------------------------------------------------
 
-  toString(): string {
+  /** `pathname?query` — shared by the three output forms below. */
+  private renderPathAndQuery(): string {
     const query = buildQueryString(this.state);
 
-    return `${this.state.origin}${this.state.pathname}${query ? `?${query}` : ''}${this.state.hash}`;
+    return `${this.state.pathname}${query ? `?${query}` : ''}`;
+  }
+
+  /**
+   * The full URL, including the origin when the builder was constructed from
+   * one. This is the round-trip form: `flexUrl(x).toString()` parses back to
+   * the same state. For client-side navigation use {@link toRelativeUrl}.
+   */
+  toString(): string {
+    return `${this.state.origin}${this.renderPathAndQuery()}${this.state.hash}`;
+  }
+
+  /**
+   * `pathname?query` — never scheme/host/fragment. The part that actually
+   * reaches the server, for `fetch()`, log lines and cache keys. Mirrors the
+   * PHP package's `toRequestUri()` exactly, so a fixture can assert one value
+   * for both. When you're navigating rather than requesting, you want
+   * {@link toRelativeUrl} — this one drops the hash.
+   */
+  toRequestUri(): string {
+    return this.renderPathAndQuery();
+  }
+
+  /**
+   * `pathname?query#hash` — the origin-relative form for client-side
+   * navigation: Inertia's `router.visit()`, `history.pushState()`, vue-router
+   * and `<a href>`.
+   *
+   * Prefer this over `toString()` when navigating. `history.pushState()`
+   * throws a `SecurityError` when the origin differs from the document's,
+   * which is exactly what happens once you build from an API URL
+   * (`flexUrl('https://api.example.com/posts')`) and want the app's own
+   * address bar to reflect the filters.
+   */
+  toRelativeUrl(): string {
+    return `${this.renderPathAndQuery()}${this.state.hash}`;
   }
 
   /**

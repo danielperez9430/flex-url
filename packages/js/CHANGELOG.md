@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`toRelativeUrl()` and `toRequestUri()`** — the origin-relative output
+  forms. `toRelativeUrl()` returns `pathname?query#hash`, which is what
+  Inertia's `router.visit()`, `history.pushState()` and vue-router expect;
+  `history.pushState()` throws a `SecurityError` when the origin differs from
+  the document's, so `toString()` is the wrong tool as soon as you build from
+  an API URL. `toRequestUri()` is the same string without the fragment — the
+  part that reaches the server — and mirrors the PHP package's method of the
+  same name. `toString()` is unchanged and remains the round-trip form. See
+  README › Navigating with the result, and › Upgrading from 1.x for replacing
+  the `window.location.pathname + '?' + ...split('?')[1]` workaround v1's
+  pathname drop forced on callers.
 - **Immutable fluent builder** for the apiable request-query grammar —
   `flexUrl()`/`url()` — covering `filter()` (with `eq`/`equal`/`like`/`gt`/
   `gte`/`lt`/`lte` operators, comma-joined multi-values, and range filters via
