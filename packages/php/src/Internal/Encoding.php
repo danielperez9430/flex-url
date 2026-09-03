@@ -24,6 +24,17 @@ namespace OpenSoutheners\FlexUrl\Internal;
  * - `=` is never assumed inside a key/value pair until *after* splitting on
  *   the first raw `=` — decoding before splitting would let an encoded
  *   `%3D` inside a value be mistaken for the key/value separator.
+ * - A raw `+` in a query key or value is a SPACE on input (form-urlencoding,
+ *   matching `parse_str` / `Request::query()` / `URLSearchParams`); `%2B` is a
+ *   literal plus. `+` -> ` ` is applied *before* percent-decoding. Output never
+ *   emits `+`. Invariant: re-serialising a parsed URL never changes what the
+ *   server reads.
+ * - Decoding never throws and never yields invalid UTF-8. A `%` that isn't
+ *   followed by two hex digits is a literal `%` (so `20%`, `50%off` and `%zz`
+ *   survive), and bytes that don't form valid UTF-8 become U+FFFD. The
+ *   TypeScript mirror implements the same three steps over the same byte
+ *   sequence, so both languages return identical strings for identical input
+ *   — including malformed input.
  *
  * @internal
  */
@@ -40,16 +51,37 @@ final class Encoding
 
     private function __construct() {}
 
-    /** Percent-encode a single scalar value for the wire, matching `encodeURIComponent`. */
+    /**
+     * Percent-encode a single scalar value for the wire, matching
+     * `encodeURIComponent` (space -> `%20`, plus -> `%2B`).
+     */
     public static function encodeValue(string $value): string
     {
         return strtr(rawurlencode($value), self::UNRESERVED_MARKS);
     }
 
-    /** Percent-decode a single scalar value read off the wire. */
+    /**
+     * Percent-decode a single scalar value read off the wire, in three steps:
+     * `+` -> space, then each `%XX` -> its byte, then the whole byte sequence
+     * -> UTF-8 (invalid sequences become U+FFFD).
+     *
+     * Deliberately not `rawurldecode()`/`urldecode()`: those return raw bytes,
+     * so a latin-1 or truncated escape yields a string that isn't valid UTF-8
+     * — which makes `json_encode()` return `false` and Laravel's
+     * `response()->json()` throw "Malformed UTF-8 characters" on nothing worse
+     * than a `?name=%FF` in the query. Never throws.
+     */
     public static function decodeValue(string $raw): string
     {
-        return rawurldecode($raw);
+        $source = str_replace('+', ' ', $raw);
+
+        $bytes = preg_replace_callback(
+            '/%([0-9A-Fa-f]{2})/',
+            static fn (array $matches): string => chr((int) hexdec($matches[1])),
+            $source,
+        );
+
+        return Utf8::scrub($bytes ?? $source);
     }
 
     /**
