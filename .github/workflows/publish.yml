@@ -6,7 +6,20 @@ on:
       - "flex-url-v*"
       - "flex-url-php-v*"
 
+permissions:
+  contents: read
+  id-token: write # OIDC token for npm trusted publishing
+
 jobs:
+  # Trusted publishing needs npm >=11.5.1 and Node >=22.14.0 (setup-node's
+  # bundled npm on Node 20 predates OIDC support); staged publishing (this
+  # trusted publisher has "npm publish" unchecked, "npm stage publish" only)
+  # raises that floor to npm >=11.15.0. The workflow filename here must also
+  # match the "publish.yml" configured as the package's trusted publisher on
+  # npmjs.com exactly. `npm stage publish` succeeding only means the version
+  # is queued — a maintainer still has to approve it with 2FA (CLI
+  # `npm stage approve` or the npmjs.com "Staged Packages" tab) before it's
+  # actually installable.
   js:
     if: startsWith(github.ref_name, 'flex-url-v')
     runs-on: ubuntu-latest
@@ -21,10 +34,13 @@ jobs:
       - name: 🏗 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           registry-url: "https://registry.npmjs.org"
           cache: npm
           cache-dependency-path: package-lock.json
+
+      - name: 🏗 Update npm
+        run: npm install -g npm@latest
 
       - name: 📦 Install dependencies
         working-directory: .
@@ -36,10 +52,8 @@ jobs:
       - name: 🧪 Test
         run: npm run test
 
-      - name: 🚀 Publish to npm
-        run: npm publish --access public --tag next
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: 🚀 Stage publish to npm
+        run: npm stage publish --access public --tag next
 
       - name: 🏗 Get release info
         id: query-release-info
