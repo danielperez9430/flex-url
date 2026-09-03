@@ -349,7 +349,10 @@ export class FlexUrl<S extends EndpointSchema | undefined = undefined> {
         params.q = this.state.search.term;
       } else {
         const filter = Object.fromEntries(
-          this.state.search.filters.map(entry => [entry.attribute, entry.values.length === 1 ? entry.values[0] : entry.values]),
+          this.state.search.filters.map(entry => [
+            entry.attribute,
+            entry.values.length === 1 && !entry.whereIn ? entry.values[0] : entry.values,
+          ]),
         );
 
         params.q = hasTerm ? {value: this.state.search.term, filter} : {filter};
@@ -442,7 +445,8 @@ export class FlexUrl<S extends EndpointSchema | undefined = undefined> {
 
     if (!entry) return undefined;
 
-    return entry.values.length === 1 ? entry.values[0] : [...entry.values];
+    // An explicit `[]` on the wire stays a list even with one value — see `SearchFilterEntry.whereIn`.
+    return entry.values.length === 1 && !entry.whereIn ? entry.values[0] : [...entry.values];
   }
 }
 

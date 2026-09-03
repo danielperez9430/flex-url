@@ -14,7 +14,7 @@ namespace OpenSoutheners\FlexUrl\Internal;
  *
  * @phpstan-type FilterEntry array{attribute: string, operator: string, values: list<string>}
  * @phpstan-type SortEntry array{attribute: string, direction: string}
- * @phpstan-type SearchFilterEntry array{attribute: string, values: list<string>}
+ * @phpstan-type SearchFilterEntry array{attribute: string, values: list<string>, whereIn: bool}
  * @phpstan-type SearchState array{term?: string, filters: list<SearchFilterEntry>}
  * @phpstan-type PageState array{number?: string, size?: string, cursor?: string}
  * @phpstan-type RawEntry array{path: list<string>, values: list<string>}
@@ -404,9 +404,15 @@ final readonly class State
     }
 
     /**
+     * `$whereIn` records that the wire used apiable's repeated-`[]` form.
+     * Tracked separately from `count($values)` because `q[filter][tag][]=x`
+     * carries one value but still means "match against a list" — collapsing it
+     * to `q[filter][tag]=x` on the way out would downgrade it to a scalar
+     * `where`.
+     *
      * @param  list<string>  $values
      */
-    public static function setSearchFilter(self $state, string $attribute, array $values): self
+    public static function setSearchFilter(self $state, string $attribute, array $values, bool $whereIn = false): self
     {
         $filters = $state->search['filters'];
         $index = null;
@@ -418,7 +424,7 @@ final readonly class State
             }
         }
 
-        $entry = ['attribute' => $attribute, 'values' => $values];
+        $entry = ['attribute' => $attribute, 'values' => $values, 'whereIn' => $whereIn];
 
         if ($index === null) {
             $filters[] = $entry;
@@ -799,7 +805,11 @@ final readonly class State
                     }
                 }
 
-                $next = self::setSearchFilter($next, $attribute, $existing ? [...$existing['values'], $value] : [$value]);
+                // `q[filter][tag][]` parses to the path ['filter', 'tag', ''] — the empty
+                // third segment is the `[]` marker, and it sticks once any pair carried it.
+                $whereIn = (count($path) >= 3 && $path[2] === '') || ($existing['whereIn'] ?? false);
+
+                $next = self::setSearchFilter($next, $attribute, $existing ? [...$existing['values'], $value] : [$value], $whereIn);
 
                 continue;
             }
@@ -891,9 +901,10 @@ final readonly class State
                 foreach ($state->search['filters'] as $entry) {
                     $key = Encoding::buildKey('q', ['filter', $entry['attribute']]);
 
-                    // A single value uses the plain key; multiple values use apiable's repeated-`[]`
-                    // whereIn() convention rather than the comma-list used elsewhere in the grammar.
-                    if (count($entry['values']) <= 1) {
+                    // A single value uses the plain key; multiple values (or a single one that
+                    // arrived under an explicit `[]`) use apiable's repeated-`[]` whereIn()
+                    // convention rather than the comma-list used elsewhere in the grammar.
+                    if (count($entry['values']) <= 1 && ! $entry['whereIn']) {
                         $pairs[] = "{$key}=".Encoding::encodeValue($entry['values'][0] ?? '');
                     } else {
                         foreach ($entry['values'] as $value) {
