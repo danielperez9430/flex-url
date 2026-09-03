@@ -50,6 +50,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A raw `+` in a query string now parses as a space** (`%2B` remains a
+  literal plus), matching `URLSearchParams`, HTML GET forms, PHP's `$_GET`
+  and Laravel's `Request::query()`. Previously `?q=hello+world` parsed to
+  `"hello+world"` and re-serialised to `?q=hello%2Bworld`, silently changing
+  the value the server saw. Serialising still never emits `+`, so a parsed
+  URL round-trips to the same meaning server-side.
 - **v2 reset**: the package is being rebuilt from scratch as a scoped
   `@open-southeners/flex-url` package targeting the apiable request grammar
   (filters, sorts, includes, fields, appends, pagination, search), with an
@@ -62,3 +68,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The `@flex-url/vue` adapter package has been retired (no longer maintained
   as part of this monorepo).
+
+### Fixed
+
+- **Percent-decoding is now total, UTF-8-safe and identical to the PHP
+  mirror.** `decodeURIComponent` is all-or-nothing: a single malformed escape
+  threw, discarding the rest of an otherwise fine value, and its failure mode
+  didn't line up with PHP's byte-oriented `rawurldecode` — the two
+  implementations returned different values for the same URL on every
+  malformed or non-UTF-8 input. Decoding now walks the escapes itself: a `%`
+  not followed by two hex digits is a literal `%` (`20%`, `50%off`, `%zz`
+  survive intact), and bytes that don't form valid UTF-8 become U+FFFD.
+- **`getPage()`/`getPageSize()` return `undefined` for non-integer page
+  params.** `?page[number]=abc` used to produce `NaN`, which flowed straight
+  into arithmetic.
+- **A single-value `q[filter][attr][]` keeps its `[]` marker.** It used to
+  round-trip to `q[filter][attr]=`, downgrading apiable's `whereIn()` to a
+  scalar `where()`. `getSearchFilter()` and `toParams()` likewise report it
+  as a one-element list rather than a string.

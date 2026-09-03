@@ -49,3 +49,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   feature, encoding edge case, and v1 regression — replayed by both this
   package's PHPUnit suite and the TypeScript core's Vitest suite so the two
   implementations can't silently drift apart.
+
+### Changed
+
+- **A raw `+` in a query string now parses as a space** (`%2B` remains a
+  literal plus), matching `$_GET`, `Request::query()`, `URLSearchParams` and
+  HTML GET forms. Previously `?q=hello+world` parsed to `"hello+world"` and
+  re-serialised to `?q=hello%2Bworld`, silently changing the value the server
+  saw. Serialising still never emits `+`, so a parsed URL round-trips to the
+  same meaning server-side.
+
+### Fixed
+
+- **Percent-decoding is now total, UTF-8-safe and identical to the TypeScript
+  mirror.** `rawurldecode()` returns raw bytes, so `?name=%FF` produced a
+  string that isn't valid UTF-8 — `json_encode()` returned `false` and
+  `response()->json()` threw "Malformed UTF-8 characters" on nothing worse
+  than a stray escape in the query string. Decoding now replaces malformed
+  sequences with U+FFFD (via `Internal\Utf8`, a direct implementation of the
+  WHATWG decoder — `mb_scrub()` substitutes `?` rather than U+FFFD and would
+  have added an extension dependency), so output is always valid UTF-8 by
+  construction. A `%` not followed by two hex digits is now a literal `%`
+  (`20%`, `50%off`, `%zz` survive intact) instead of being partly rewritten.
+- **`getPage()`/`getPageSize()` return `null` for non-integer page params.**
+  `?page[number]=abc` used to cast to `0`, and `?page[size]=20%` to `20` —
+  quietly discarding the `%` and inventing a plausible-looking value.
+- **A single-value `q[filter][attr][]` keeps its `[]` marker.** It used to
+  round-trip to `q[filter][attr]=`, downgrading apiable's `whereIn()` to a
+  scalar `where()`. `getSearchFilter()` and `toParams()` likewise report it
+  as a one-element list rather than a string.

@@ -177,6 +177,14 @@ Omit the schema argument (explicit-generic-only usage) to skip these warnings en
   never be confused with the raw commas/brackets used as structural separators.
 - Parsing is the exact inverse and accepts **both** raw and percent-encoded brackets/commas on
   input — apiable's own pagination `links` use `page%5Bnumber%5D`.
+- Parsing uses `application/x-www-form-urlencoded` semantics for the query string — what
+  `URLSearchParams`, HTML GET forms, PHP's `$_GET` and Laravel's `Request::query()` all do: a raw
+  `+` decodes to a **space**, `%2B` to a literal plus. Serialising never emits `+` (a space is
+  `%20`), so `flexUrl(url).toString()` always means the same thing to the server as `url` did.
+- Parsing never throws and never produces invalid UTF-8. A `%` that isn't followed by two hex
+  digits is a literal `%`, and bytes that don't form valid UTF-8 become U+FFFD. The PHP mirror
+  runs the same steps over the same bytes, so both languages return identical strings for
+  identical input — malformed input included.
 
 ```ts
 flexUrl('/posts').filter('title', 'a,b').toString();
@@ -187,6 +195,10 @@ flexUrl('/posts').filter('title', ['a,b', 'c']).toString();
 
 flexUrl('/posts?filter[title]=a%2Cb').getFilter('title'); // "a,b"
 flexUrl('http://x/y?page%5Bnumber%5D=2').getPage();        // 2
+
+flexUrl('/posts?filter[discount]=20%').getFilter('discount'); // "20%"   — literal, not a broken escape
+flexUrl('/posts?q=hello+world').getSearch();                  // "hello world"
+flexUrl('/posts?q=C%2B%2B').getSearch();                      // "C++"
 ```
 
 ## `search()` vs. `searchFilter()`
