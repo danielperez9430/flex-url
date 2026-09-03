@@ -7,7 +7,7 @@ on:
       - "flex-url-php-v*"
 
 permissions:
-  contents: read
+  contents: write # softprops/action-gh-release needs write to create releases
   id-token: write # OIDC token for npm trusted publishing
 
 jobs:
