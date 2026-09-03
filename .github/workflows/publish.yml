@@ -1,41 +1,93 @@
-# NOTE: untested. This is a minimal, best-effort publish workflow for the v2
-# reset (see A1 in the flex-url tooling plan) — it has not been run against a
-# real tag yet. Review carefully before relying on it for a real release.
 name: Publish
 
 on:
   push:
     tags:
       - "flex-url-v*"
+      - "flex-url-php-v*"
 
 jobs:
-  npm:
+  js:
+    if: startsWith(github.ref_name, 'flex-url-v')
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: packages/js
 
     steps:
-      - uses: actions/checkout@v4
+      - name: 🏗 Checkout code
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: 🏗 Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: "https://registry.npmjs.org"
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         working-directory: .
         run: npm ci
 
-      - name: Build
+      - name: 🏗 Build
         run: npm run build
 
-      - name: Test
+      - name: 🧪 Test
         run: npm run test
 
-      - name: Publish to npm
+      - name: 🚀 Publish to npm
         run: npm publish --access public --tag next
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: 🏗 Get release info
+        id: query-release-info
+        uses: release-flow/keep-a-changelog-action@v3
+        with:
+          command: query
+          version: latest
+          changelog: packages/js/CHANGELOG.md
+
+      - name: 🚀 Publish to GitHub releases
+        uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ steps.query-release-info.outputs.release-notes }}
+          make_latest: true
+
+  # Packagist watches the read-only open-southeners/flex-url-php split (not
+  # this monorepo) and auto-updates from its own GitHub webhook whenever that
+  # split repo gets a new tag — so this job's only jobs are producing that
+  # split/tag and this monorepo's GitHub release from packages/php/CHANGELOG.md.
+  php:
+    if: startsWith(github.ref_name, 'flex-url-php-v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🏗 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🏗 Get release info
+        id: query-release-info
+        uses: release-flow/keep-a-changelog-action@v3
+        with:
+          command: query
+          version: latest
+          changelog: packages/php/CHANGELOG.md
+
+      - name: 🚀 Split packages/php and push to flex-url-php
+        env:
+          SPLIT_REPO_TOKEN: ${{ secrets.SPLIT_REPO_TOKEN }}
+          VERSION: ${{ steps.query-release-info.outputs.version }}
+        run: |
+          git subtree split --prefix=packages/php -b split-php
+          git push "https://x-access-token:${SPLIT_REPO_TOKEN}@github.com/open-southeners/flex-url-php.git" split-php:main --force
+          git push "https://x-access-token:${SPLIT_REPO_TOKEN}@github.com/open-southeners/flex-url-php.git" "split-php:refs/tags/v${VERSION}" --force
+
+      - name: 🚀 Publish to GitHub releases
+        uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ steps.query-release-info.outputs.release-notes }}
+          make_latest: true
