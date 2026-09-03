@@ -1164,5 +1164,237 @@
         }
       }
     ]
+  },
+  {
+    "name": "a trailing percent sign parses as a literal percent, not a broken escape",
+    "base": "https://api.example.com/posts?filter[discount]=20%",
+    "build": [],
+    "url": "https://api.example.com/posts?filter[discount]=20%25",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "discount"
+        ],
+        "equals": "20%"
+      }
+    ]
+  },
+  {
+    "name": "a percent sign inside a word survives parsing",
+    "base": "https://api.example.com/posts?q=50%off",
+    "build": [],
+    "url": "https://api.example.com/posts?q=50%25off",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getSearch",
+        "args": [],
+        "equals": "50%off"
+      }
+    ]
+  },
+  {
+    "name": "a lone percent sign parses as a literal percent",
+    "base": "https://api.example.com/posts?filter[a]=%",
+    "build": [],
+    "url": "https://api.example.com/posts?filter[a]=%25",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "a"
+        ],
+        "equals": "%"
+      }
+    ]
+  },
+  {
+    "name": "a percent followed by non-hex digits parses as a literal percent",
+    "base": "https://api.example.com/posts?filter[a]=%zz",
+    "build": [],
+    "url": "https://api.example.com/posts?filter[a]=%25zz",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "a"
+        ],
+        "equals": "%zz"
+      }
+    ]
+  },
+  {
+    "name": "a valid escape next to an invalid one decodes only the valid one",
+    "base": "https://api.example.com/posts?filter[a]=%41%zz",
+    "build": [],
+    "url": "https://api.example.com/posts?filter[a]=A%25zz",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "a"
+        ],
+        "equals": "A%zz"
+      }
+    ]
+  },
+  {
+    "name": "%20 parses as a space and round-trips as %20",
+    "base": "https://api.example.com/posts?filter[name]=%20",
+    "build": [],
+    "url": "https://api.example.com/posts?filter[name]=%20",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "name"
+        ],
+        "equals": " "
+      }
+    ]
+  },
+  {
+    "name": "bytes that are not valid UTF-8 parse as the replacement character",
+    "base": "https://api.example.com/posts?filter[a]=%FF",
+    "build": [],
+    "url": "https://api.example.com/posts?filter[a]=%EF%BF%BD",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "a"
+        ],
+        "equals": "\ufffd"
+      }
+    ]
+  },
+  {
+    "name": "a truncated UTF-8 sequence parses as one replacement character plus the literal remainder",
+    "base": "https://api.example.com/posts?filter[a]=%E0%A4%A",
+    "build": [],
+    "url": "https://api.example.com/posts?filter[a]=%EF%BF%BD%25A",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "a"
+        ],
+        "equals": "\ufffd%A"
+      }
+    ]
+  },
+  {
+    "name": "a raw + parses as a space and round-trips as %20",
+    "base": "https://api.example.com/posts?q=hello+world",
+    "build": [],
+    "url": "https://api.example.com/posts?q=hello%20world",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getSearch",
+        "args": [],
+        "equals": "hello world"
+      }
+    ]
+  },
+  {
+    "name": "%2B parses as a literal plus, not a space",
+    "base": "https://api.example.com/posts?q=C%2B%2B",
+    "build": [],
+    "url": "https://api.example.com/posts?q=C%2B%2B",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getSearch",
+        "args": [],
+        "equals": "C++"
+      }
+    ]
+  },
+  {
+    "name": "a raw = inside a value is not mistaken for the key/value separator",
+    "base": "https://api.example.com/posts?filter[code]=a=b",
+    "build": [],
+    "url": "https://api.example.com/posts?filter[code]=a%3Db",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "code"
+        ],
+        "equals": "a=b"
+      }
+    ]
+  },
+  {
+    "name": "a double-encoded escape decodes exactly one level",
+    "base": "https://api.example.com/posts?filter[a]=%2520",
+    "build": [],
+    "url": "https://api.example.com/posts?filter[a]=%2520",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "a"
+        ],
+        "equals": "%20"
+      }
+    ]
+  },
+  {
+    "name": "a non-integer page number reads back as absent",
+    "base": "https://api.example.com/posts?page[number]=abc",
+    "build": [],
+    "url": "https://api.example.com/posts?page[number]=abc",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getPage",
+        "args": [],
+        "equals": null
+      }
+    ]
+  },
+  {
+    "name": "a non-integer page size reads back as absent",
+    "base": "https://api.example.com/posts?page[size]=20%",
+    "build": [],
+    "url": "https://api.example.com/posts?page[size]=20%25",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getPageSize",
+        "args": [],
+        "equals": null
+      }
+    ]
+  },
+  {
+    "name": "a single-value q[filter] whereIn keeps its [] marker",
+    "base": "https://api.example.com/posts?q[filter][tag][]=vue",
+    "build": [],
+    "url": "https://api.example.com/posts?q[filter][tag][]=vue",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getSearchFilter",
+        "args": [
+          "tag"
+        ],
+        "equals": [
+          "vue"
+        ]
+      }
+    ]
   }
 ]

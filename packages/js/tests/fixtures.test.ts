@@ -26,6 +26,8 @@ interface FixtureCase {
   base: string;
   build: FixtureOperation[];
   url: string;
+  /** Which URL `reads` is checked against — see `fixtures/SCHEMA.md`. Defaults to `'url'`. */
+  readsFrom?: 'base' | 'url';
   reads?: FixtureRead[];
 }
 
@@ -53,10 +55,14 @@ describe('shared fixtures (fixtures/cases.json)', () => {
 
       if (!testCase.reads) return;
 
-      const reader: AnyBuilder = flexUrl(testCase.url);
+      const reader: AnyBuilder = flexUrl(testCase.readsFrom === 'base' ? testCase.base : testCase.url);
 
       for (const read of testCase.reads) {
-        expect(reader[read.op](...read.args)).toEqual(read.equals);
+        // A fixture's `null` means "absent"; PHP returns null where we return
+        // undefined, and no fixture should have to care which. See SCHEMA.md.
+        const actual = reader[read.op](...read.args);
+
+        expect(actual === undefined ? null : actual).toEqual(read.equals);
       }
     });
   }

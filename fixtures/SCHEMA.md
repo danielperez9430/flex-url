@@ -33,8 +33,17 @@ Each entry in the top-level array is a case object:
   // `base`.
   "url": "https://api.example.com/posts?filter[status]=published,draft&sort=-created_at",
 
+  // Optional: which URL the `reads` assertions are checked against.
+  // "url" (the default) builds the reader from the canonical `url` above,
+  // asserting that parse = build. "base" builds it from `base` instead,
+  // which is what parse-only cases need: when `base` is a URL nobody would
+  // ever emit (a malformed escape, a raw `+`, an explicit `[]`), the point
+  // of the case is what the *input* parses to, and `url` records how it is
+  // normalised on the way back out. Only meaningful with `build: []`.
+  "readsFrom": "url",
+
   // Optional: read-back assertions. Constructing a fresh builder instance
-  // from `url` (parse = build) must satisfy every assertion here. Each
+  // from `readsFrom` (parse = build) must satisfy every assertion here. Each
   // assertion is a reader call (`op`/`args`, same shape as `build`) paired
   // with the value it must return/equal on both sides.
   "reads": [
@@ -50,5 +59,10 @@ Notes:
   numbers, booleans, arrays, objects, null) — no language-specific types.
   Each runner maps `op` names to its own method calls.
 - `reads` is optional; omit it for cases that only assert the built URL.
+- `readsFrom` is optional and defaults to `"url"`.
+- An `"equals": null` means "absent". PHP returns `null` and TypeScript
+  returns `undefined` for the same state, so the TypeScript runner normalises
+  `undefined` to `null` before comparing — a fixture can't distinguish the
+  two, and shouldn't try to.
 - Keep descriptors minimal: one call per array entry, no nesting/branching.
   A case that needs conditional logic belongs as multiple cases instead.
