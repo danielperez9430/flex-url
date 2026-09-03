@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OpenSoutheners\FlexUrl;
 
+use OpenSoutheners\FlexUrl\Internal\Encoding;
 use OpenSoutheners\FlexUrl\Internal\Input;
 use OpenSoutheners\FlexUrl\Internal\State;
 use Stringable;
@@ -238,11 +239,14 @@ final readonly class FlexUrl implements Stringable
     /** Removes a raw param, or (when `$key` is one of `filter|sort|include|fields|appends|page|q`) clears that whole bucket. */
     public function removeParam(string $key): self
     {
-        if (State::isBucketId($key)) {
-            return $this->withState(State::clearBucket($this->state, $key));
+        ['base' => $base, 'path' => $path] = Encoding::parseKey($key);
+
+        if ($path === [] && State::isBucketId($base)) {
+            return $this->withState(State::clearBucket($this->state, $base));
         }
 
-        return $this->withState(State::removeRawParam($this->state, [$key]));
+        // A bare key removes the whole family; a bracketed one targets a single entry.
+        return $this->withState(State::removeRawParam($this->state, [$base, ...$path], $path === []));
     }
 
     /** Clears every param (filters, sorts, includes, fields, appends, page, search, raw). Keeps origin/pathname/hash. */

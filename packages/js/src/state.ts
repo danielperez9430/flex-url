@@ -236,6 +236,11 @@ function samePath(a: readonly string[], b: readonly string[]): boolean {
   return a.length === b.length && a.every((segment, i) => segment === b[i]);
 }
 
+/** True when `prefix` is `path` itself or an ancestor of it. */
+function isPathPrefix(prefix: readonly string[], path: readonly string[]): boolean {
+  return prefix.length <= path.length && prefix.every((segment, i) => segment === path[i]);
+}
+
 export function setRawParam(state: FlexUrlState, path: readonly string[], values: string[]): FlexUrlState {
   const index = state.raw.findIndex(entry => samePath(entry.path, path));
   const entry: RawEntry = {path: [...path], values};
@@ -255,11 +260,25 @@ export function mergeRawParamFromParse(state: FlexUrlState, path: readonly strin
   return {...state, raw};
 }
 
-export function removeRawParam(state: FlexUrlState, path: readonly string[]): FlexUrlState {
-  const raw = state.raw.filter(entry => !samePath(entry.path, path));
-  const order = state.order.filter(id => id !== rawOrderId(path));
+/**
+ * Removes raw params by path. With `includeNested`, `path` is treated as a
+ * prefix, so `['custom_sort']` also removes `custom_sort[lang]` — which is
+ * what a caller passing a bare key means, since a bare key is how a whole
+ * bucket is cleared elsewhere in this API.
+ */
+export function removeRawParam(state: FlexUrlState, path: readonly string[], includeNested = false): FlexUrlState {
+  const matches = (entry: RawEntry): boolean =>
+    includeNested ? isPathPrefix(path, entry.path) : samePath(entry.path, path);
 
-  return {...state, raw, order};
+  // Every removed entry takes its own order id with it — a prefix removal can
+  // drop several at once, so the ids can't be derived from `path` alone.
+  const removedIds = new Set(state.raw.filter(matches).map(entry => rawOrderId(entry.path)));
+
+  return {
+    ...state,
+    raw: state.raw.filter(entry => !matches(entry)),
+    order: state.order.filter(id => !removedIds.has(id)),
+  };
 }
 
 // ---------------------------------------------------------------------------

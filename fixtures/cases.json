@@ -1572,5 +1572,70 @@
         "equals": "+34600123456"
       }
     ]
+  },
+  {
+    "name": "removeParam targets one nested raw param with bracket syntax",
+    "base": "https://api.example.com/posts?custom_sort[lang]=asc&custom_sort[dir]=desc&sort=title",
+    "build": [
+      {
+        "op": "removeParam",
+        "args": [
+          "custom_sort[lang]"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?custom_sort[dir]=desc&sort=title"
+  },
+  {
+    "name": "removeParam with a bare key removes every nested raw param under it",
+    "base": "https://api.example.com/posts?custom_sort[lang]=asc&custom_sort[dir]=desc&sort=title",
+    "build": [
+      {
+        "op": "removeParam",
+        "args": [
+          "custom_sort"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?sort=title"
+  },
+  {
+    "name": "removeParam on a bare key still removes a flat raw param",
+    "base": "https://api.example.com/posts?debug=1&sort=title",
+    "build": [
+      {
+        "op": "removeParam",
+        "args": [
+          "debug"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?sort=title"
+  },
+  {
+    "name": "removeParam with bracket syntax leaves an unrelated raw param alone",
+    "base": "https://api.example.com/posts?custom_sort[lang]=asc&debug=1",
+    "build": [
+      {
+        "op": "removeParam",
+        "args": [
+          "custom_sort[lang]"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?debug=1"
+  },
+  {
+    "name": "removeParam on a deeper nested raw param path",
+    "base": "https://api.example.com/posts?meta[a][b]=1&meta[a][c]=2",
+    "build": [
+      {
+        "op": "removeParam",
+        "args": [
+          "meta[a][b]"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?meta[a][c]=2"
   }
 ]

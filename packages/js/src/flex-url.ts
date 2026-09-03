@@ -1,3 +1,4 @@
+import {parseKey} from './encoding.js';
 import {parseInput} from './input.js';
 import {
   buildQueryString,
@@ -281,13 +282,24 @@ export class FlexUrl<S extends EndpointSchema | undefined = undefined> {
     return this.withState(setRawParam(this.state, [key], toValueList(value)));
   }
 
-  /** Removes a raw param, or (when `key` is one of `filter|sort|include|fields|appends|page|q`) clears that whole bucket. */
+  /**
+   * Removes a raw param, or (when `key` is one of
+   * `filter|sort|include|fields|appends|page|q`) clears that whole bucket.
+   *
+   * Bracket syntax addresses a nested raw param: `removeParam('custom_sort[lang]')`
+   * removes exactly that entry, while the bare `removeParam('custom_sort')`
+   * removes every `custom_sort[...]` under it — the same "bare key clears the
+   * whole thing" rule the bucket names follow.
+   */
   removeParam(key: string): FlexUrl<S> {
-    if (isBucketId(key)) {
-      return this.withState(clearBucket(this.state, key));
+    const {base, path} = parseKey(key);
+
+    if (path.length === 0 && isBucketId(base)) {
+      return this.withState(clearBucket(this.state, base));
     }
 
-    return this.withState(removeRawParam(this.state, [key]));
+    // A bare key removes the whole family; a bracketed one targets a single entry.
+    return this.withState(removeRawParam(this.state, [base, ...path], path.length === 0));
   }
 
   /** Clears every param (filters, sorts, includes, fields, appends, page, search, raw). Keeps origin/pathname/hash. */

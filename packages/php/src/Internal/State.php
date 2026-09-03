@@ -467,6 +467,17 @@ final readonly class State
     }
 
     /**
+     * True when `$prefix` is `$path` itself or an ancestor of it.
+     *
+     * @param  list<string>  $prefix
+     * @param  list<string>  $path
+     */
+    private static function isPathPrefix(array $prefix, array $path): bool
+    {
+        return array_slice($path, 0, count($prefix)) === $prefix;
+    }
+
+    /**
      * @param  list<string>  $path
      */
     private static function rawOrderId(array $path): string
@@ -559,17 +570,34 @@ final readonly class State
     }
 
     /**
+     * Removes raw params by path. With `$includeNested`, `$path` is treated as
+     * a prefix, so `['custom_sort']` also removes `custom_sort[lang]` — which
+     * is what a caller passing a bare key means, since a bare key is how a
+     * whole bucket is cleared elsewhere in this API.
+     *
      * @param  list<string>  $path
      */
-    public static function removeRawParam(self $state, array $path): self
+    public static function removeRawParam(self $state, array $path, bool $includeNested = false): self
     {
-        $raw = array_values(array_filter(
-            $state->raw,
-            static fn (array $entry): bool => ! self::samePath($entry['path'], $path),
-        ));
+        $matches = static fn (array $entry): bool => $includeNested
+            ? self::isPathPrefix($path, $entry['path'])
+            : self::samePath($entry['path'], $path);
 
-        $orderId = self::rawOrderId($path);
-        $order = array_values(array_filter($state->order, static fn (string $id): bool => $id !== $orderId));
+        // Every removed entry takes its own order id with it — a prefix removal
+        // can drop several at once, so the ids can't be derived from `$path`.
+        $removedIds = [];
+
+        foreach ($state->raw as $entry) {
+            if ($matches($entry)) {
+                $removedIds[] = self::rawOrderId($entry['path']);
+            }
+        }
+
+        $raw = array_values(array_filter($state->raw, static fn (array $entry): bool => ! $matches($entry)));
+        $order = array_values(array_filter(
+            $state->order,
+            static fn (string $id): bool => ! in_array($id, $removedIds, true),
+        ));
 
         return new self(
             origin: $state->origin,

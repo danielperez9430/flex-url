@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `removeParam()` now reaches nested raw params: `removeParam('custom_sort[lang]')`
+  removes that one entry, and the bare `removeParam('custom_sort')` removes every
+  `custom_sort[...]` under it. Previously both were silent no-ops, leaving a
+  parsed nested raw param with no way to remove it at all.
+
 ## [2.0.0] - 2026-09-03
 
 ### Added
