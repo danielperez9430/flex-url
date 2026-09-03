@@ -143,6 +143,17 @@ FlexUrl::make('/posts')->filter('status', 'published')->clear();                
 `removeParam($key)` clears an entire bucket when `$key` is one of `filter`, `sort`, `include`,
 `fields`, `appends`, `page`, `q` — otherwise it removes a raw param set via `param()`.
 
+`removeParam()` also reaches nested raw params — the custom, outside-the-grammar keys a URL may
+carry. A bracketed key targets one entry; a bare key removes everything under it, the same rule
+the bucket names follow:
+
+```php
+$u = FlexUrl::make('/posts?custom_sort[lang]=asc&custom_sort[dir]=desc');
+
+$u->removeParam('custom_sort[lang]'); // "/posts?custom_sort[dir]=desc"
+$u->removeParam('custom_sort');       // "/posts"
+```
+
 ## Encoding contract
 
 - Structural brackets (`filter[attr][op]`) and the comma that separates multiple values
