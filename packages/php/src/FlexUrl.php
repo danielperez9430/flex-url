@@ -29,6 +29,8 @@ use Stringable;
  * ```
  *
  * Every mutator returns a *new* instance — the receiver is never modified.
+ *
+ * @phpstan-import-type FilterEntry from State
  */
 final readonly class FlexUrl implements Stringable
 {
@@ -144,6 +146,54 @@ final readonly class FlexUrl implements Stringable
         $op = $operator === null ? null : self::normaliseOperator($operator);
 
         return $this->withState(State::removeFilter($this->state, $attribute, $op));
+    }
+
+    /**
+     * Adds one or more values to a filter's existing list rather than
+     * replacing it (`filter[char]=A` + `B` -> `filter[char]=A,B`), creating the
+     * filter when absent and skipping values already present.
+     *
+     * `filter()` replaces; this accumulates. Operates on the plain
+     * (bracket-less) entry — a multi-value list and a comparison operator
+     * don't combine.
+     *
+     * @param  string|int|bool|list<string|int|bool>  $value
+     */
+    public function addFilterValue(string $attribute, string|int|bool|array $value): self
+    {
+        return $this->withState(State::addFilterValues($this->state, $attribute, self::toValueList($value)));
+    }
+
+    /**
+     * Drops one or more values from a filter's list, removing the filter
+     * entirely once nothing is left.
+     *
+     * This is the "remove one chip" operation. Note it is *not* what
+     * `removeFilter()` does: that one's second argument is an operator, so
+     * `removeFilter($attribute, $someValue)` silently matches nothing.
+     *
+     * @param  string|int|bool|list<string|int|bool>  $value
+     */
+    public function removeFilterValue(string $attribute, string|int|bool|array $value): self
+    {
+        return $this->withState(State::removeFilterValues($this->state, $attribute, self::toValueList($value)));
+    }
+
+    /** Adds the value if the filter doesn't already carry it, removes it if it does. */
+    public function toggleFilterValue(string $attribute, string|int|bool $value): self
+    {
+        $values = [];
+
+        foreach ($this->state->filters as $entry) {
+            if ($entry['attribute'] === $attribute && $entry['operator'] === '') {
+                $values = $entry['values'];
+                break;
+            }
+        }
+
+        return in_array(self::stringifyScalar($value), $values, true)
+            ? $this->removeFilterValue($attribute, $value)
+            : $this->addFilterValue($attribute, $value);
     }
 
     // ---------------------------------------------------------------------
@@ -438,6 +488,44 @@ final readonly class FlexUrl implements Stringable
         }
 
         return null;
+    }
+
+    /**
+     * Every filter on the URL, in wire order — the plural counterpart to
+     * `getFilter()`, mirroring `getSorts()`.
+     *
+     * Returns entries rather than a keyed array so nothing is lost: an
+     * attribute can appear more than once under different operators
+     * (`filter[due][gte]`, `filter[due][lte]`), which an array keyed by
+     * attribute cannot represent.
+     *
+     * @return list<FilterEntry>
+     */
+    public function getFilters(): array
+    {
+        return $this->state->filters;
+    }
+
+    /**
+     * Reads a raw param set with `param()` — the counterpart that made the
+     * escape hatch write-only. Bracket syntax reads a nested one
+     * (`getParam('custom_sort[lang]')`).
+     *
+     * Grammar buckets are not raw params, so `getParam('filter')` is `null`;
+     * use `getFilter()`/`getSorts()`/`getPage()` for those.
+     *
+     * @return string|list<string>|null
+     */
+    public function getParam(string $key): string|array|null
+    {
+        ['base' => $base, 'path' => $path] = Encoding::parseKey($key);
+        $entry = State::findRawParam($this->state, [$base, ...$path]);
+
+        if ($entry === null) {
+            return null;
+        }
+
+        return count($entry['values']) === 1 ? $entry['values'][0] : $entry['values'];
     }
 
     /** @return list<array{attribute: string, direction: string}> */

@@ -67,6 +67,24 @@ normalises to it before reaching the URL, `toParams()`, or a schema's operator l
 A plain `filter(attribute, value)` (no operator) sends a bracket-less `filter[attribute]=value`,
 matching whichever operator apiable has registered first for that attribute.
 
+### Multi-value filters
+
+`filter()` replaces an attribute's values. For the checkbox/chip UIs that build a list one value
+at a time, three operations work on the values themselves:
+
+```ts
+flexUrl('/posts?filter[char]=A').addFilterValue('char', 'B');     // filter[char]=A,B
+flexUrl('/posts?filter[char]=A,B').removeFilterValue('char', 'B'); // filter[char]=A
+flexUrl('/posts?filter[char]=A').removeFilterValue('char', 'A');   // filter dropped entirely
+flexUrl('/posts?filter[char]=A').toggleFilterValue('char', 'A');   // present → removed
+```
+
+Removing the last value removes the filter, which is what "untick the last checkbox" should do.
+
+They act on the plain (bracket-less) entry — a multi-value list and a comparison operator don't
+combine. Note this is the distinction `removeFilter()` does *not* make: its second argument is an
+**operator**, so `removeFilter('char', 'B')` matches nothing and silently changes nothing.
+
 ### Reading state back
 
 ```ts
@@ -93,6 +111,14 @@ parsed.toRequestUri();                 // "pathname?query" — what reaches the 
 
 Omitting `operator` on `hasFilter()`/`getFilter()` checks/reads the plain (bracket-less)
 `filter[attribute]=` entry specifically — not "any operator".
+
+`getFilters()` returns every filter as `{attribute, operator, values}` entries, in wire order —
+the plural counterpart to `getFilter()`. Entries rather than a keyed object, because an attribute
+can appear more than once under different operators (`filter[due][gte]`, `filter[due][lte]`).
+
+`getParam(key)` reads a raw param set with `param()`, with bracket syntax for a nested one
+(`getParam('custom_sort[lang]')`). Grammar buckets are not raw params, so `getParam('filter')` is
+`undefined` — use `getFilter()`/`getSorts()`/`getPage()` for those.
 
 ### `toParams()`
 

@@ -7,6 +7,9 @@ import {
   emptyState,
   hydrateFromSearch,
   isBucketId,
+  addFilterValues,
+  findRawParam,
+  removeFilterValues,
   removeFilter as removeFilterFromState,
   removeRawParam,
   setFilter,
@@ -22,6 +25,7 @@ import {
 } from './state.js';
 import type {
   AppendsAccessor,
+  FilterEntry,
   EndpointSchema,
   FilterAttribute,
   FilterOperator,
@@ -199,6 +203,38 @@ export class FlexUrl<S extends EndpointSchema | undefined = undefined> {
     const op = operator === undefined ? undefined : normaliseOperator(operator);
 
     return this.withState(removeFilterFromState(this.state, attribute, op));
+  }
+
+  /**
+   * Adds one or more values to a filter's existing list rather than replacing
+   * it (`filter[char]=A` + `B` → `filter[char]=A,B`), creating the filter when
+   * absent and skipping values already present.
+   *
+   * `filter()` replaces; this accumulates. Operates on the plain
+   * (bracket-less) entry — a multi-value list and a comparison operator don't
+   * combine.
+   */
+  addFilterValue(attribute: string, value: ScalarValue | ScalarValue[]): FlexUrl<S> {
+    return this.withState(addFilterValues(this.state, attribute, toValueList(value)));
+  }
+
+  /**
+   * Drops one or more values from a filter's list, removing the filter
+   * entirely once nothing is left.
+   *
+   * This is the "remove one chip" operation. Note it is *not* what
+   * {@link removeFilter} does: that one's second argument is an operator, so
+   * `removeFilter(attribute, someValue)` silently matches nothing.
+   */
+  removeFilterValue(attribute: string, value: ScalarValue | ScalarValue[]): FlexUrl<S> {
+    return this.withState(removeFilterValues(this.state, attribute, toValueList(value)));
+  }
+
+  /** Adds the value if the filter doesn't already carry it, removes it if it does. */
+  toggleFilterValue(attribute: string, value: ScalarValue): FlexUrl<S> {
+    const values = this.state.filters.find(entry => entry.attribute === attribute && entry.operator === '')?.values ?? [];
+
+    return values.includes(String(value)) ? this.removeFilterValue(attribute, value) : this.addFilterValue(attribute, value);
   }
 
   // ---------------------------------------------------------------------
@@ -449,6 +485,36 @@ export class FlexUrl<S extends EndpointSchema | undefined = undefined> {
   getFilter(attribute: string, operator?: string): string | string[] | undefined {
     const op = operator === undefined ? '' : normaliseOperator(operator);
     const entry = this.state.filters.find(candidate => candidate.attribute === attribute && candidate.operator === op);
+
+    if (!entry) return undefined;
+
+    return entry.values.length === 1 ? entry.values[0] : [...entry.values];
+  }
+
+  /**
+   * Every filter on the URL, in wire order — the plural counterpart to
+   * {@link getFilter}, mirroring `getSorts()`.
+   *
+   * Returns entries rather than a keyed object so nothing is lost: an
+   * attribute can appear more than once under different operators
+   * (`filter[due][gte]`, `filter[due][lte]`), which a `Record` keyed by
+   * attribute cannot represent.
+   */
+  getFilters(): FilterEntry[] {
+    return this.state.filters.map(entry => ({...entry, values: [...entry.values]}));
+  }
+
+  /**
+   * Reads a raw param set with {@link param} — the counterpart that made the
+   * escape hatch write-only. Bracket syntax reads a nested one
+   * (`getParam('custom_sort[lang]')`).
+   *
+   * Grammar buckets are not raw params, so `getParam('filter')` is
+   * `undefined`; use `getFilter()`/`getSorts()`/`getPage()` for those.
+   */
+  getParam(key: string): string | string[] | undefined {
+    const {base, path} = parseKey(key);
+    const entry = findRawParam(this.state, [base, ...path]);
 
     if (!entry) return undefined;
 

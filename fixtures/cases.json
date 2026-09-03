@@ -1637,5 +1637,266 @@
       }
     ],
     "url": "https://api.example.com/posts?meta[a][c]=2"
+  },
+  {
+    "name": "addFilterValue accumulates onto an existing filter instead of replacing it",
+    "base": "https://api.example.com/posts?filter[char]=A",
+    "build": [
+      {
+        "op": "addFilterValue",
+        "args": [
+          "char",
+          "B"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[char]=A,B",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "char"
+        ],
+        "equals": [
+          "A",
+          "B"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "addFilterValue creates the filter when the attribute is absent",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "addFilterValue",
+        "args": [
+          "char",
+          "A"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[char]=A",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "char"
+        ],
+        "equals": "A"
+      }
+    ]
+  },
+  {
+    "name": "addFilterValue skips a value the filter already carries",
+    "base": "https://api.example.com/posts?filter[char]=A,B",
+    "build": [
+      {
+        "op": "addFilterValue",
+        "args": [
+          "char",
+          "B"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[char]=A,B"
+  },
+  {
+    "name": "addFilterValue accepts a list of values",
+    "base": "https://api.example.com/posts?filter[char]=A",
+    "build": [
+      {
+        "op": "addFilterValue",
+        "args": [
+          "char",
+          [
+            "B",
+            "C"
+          ]
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[char]=A,B,C"
+  },
+  {
+    "name": "removeFilterValue drops one value and keeps the rest",
+    "base": "https://api.example.com/posts?filter[char]=A,B,C",
+    "build": [
+      {
+        "op": "removeFilterValue",
+        "args": [
+          "char",
+          "B"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[char]=A,C",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "char"
+        ],
+        "equals": [
+          "A",
+          "C"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "removeFilterValue removes the whole filter once the last value goes",
+    "base": "https://api.example.com/posts?filter[char]=A&sort=title",
+    "build": [
+      {
+        "op": "removeFilterValue",
+        "args": [
+          "char",
+          "A"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?sort=title"
+  },
+  {
+    "name": "removeFilterValue on an absent attribute is a no-op",
+    "base": "https://api.example.com/posts?filter[char]=A",
+    "build": [
+      {
+        "op": "removeFilterValue",
+        "args": [
+          "other",
+          "A"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[char]=A"
+  },
+  {
+    "name": "toggleFilterValue adds a value the filter does not carry",
+    "base": "https://api.example.com/posts?filter[char]=A",
+    "build": [
+      {
+        "op": "toggleFilterValue",
+        "args": [
+          "char",
+          "B"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[char]=A,B"
+  },
+  {
+    "name": "toggleFilterValue removes a value the filter already carries",
+    "base": "https://api.example.com/posts?filter[char]=A,B",
+    "build": [
+      {
+        "op": "toggleFilterValue",
+        "args": [
+          "char",
+          "B"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[char]=A"
+  },
+  {
+    "name": "getFilters returns every filter including operator entries",
+    "base": "https://api.example.com/posts?filter[status]=a,b&filter[due][gte]=2024-01-01",
+    "build": [],
+    "url": "https://api.example.com/posts?filter[status]=a,b&filter[due][gte]=2024-01-01",
+    "reads": [
+      {
+        "op": "getFilters",
+        "args": [],
+        "equals": [
+          {
+            "attribute": "status",
+            "operator": "",
+            "values": [
+              "a",
+              "b"
+            ]
+          },
+          {
+            "attribute": "due",
+            "operator": "gte",
+            "values": [
+              "2024-01-01"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "getParam reads a flat raw param",
+    "base": "https://api.example.com/posts?debug=1",
+    "build": [],
+    "url": "https://api.example.com/posts?debug=1",
+    "reads": [
+      {
+        "op": "getParam",
+        "args": [
+          "debug"
+        ],
+        "equals": "1"
+      }
+    ]
+  },
+  {
+    "name": "getParam reads a nested raw param with bracket syntax",
+    "base": "https://api.example.com/posts?custom_sort[lang]=asc",
+    "build": [],
+    "url": "https://api.example.com/posts?custom_sort[lang]=asc",
+    "reads": [
+      {
+        "op": "getParam",
+        "args": [
+          "custom_sort[lang]"
+        ],
+        "equals": "asc"
+      }
+    ]
+  },
+  {
+    "name": "getParam returns absent for a grammar bucket and for an unknown key",
+    "base": "https://api.example.com/posts?filter[status]=a",
+    "build": [],
+    "url": "https://api.example.com/posts?filter[status]=a",
+    "reads": [
+      {
+        "op": "getParam",
+        "args": [
+          "filter"
+        ],
+        "equals": null
+      },
+      {
+        "op": "getParam",
+        "args": [
+          "nope"
+        ],
+        "equals": null
+      }
+    ]
+  },
+  {
+    "name": "getParam returns a list for a repeated raw param",
+    "base": "https://api.example.com/posts?tag=a&tag=b",
+    "build": [],
+    "url": "https://api.example.com/posts?tag=a&tag=b",
+    "reads": [
+      {
+        "op": "getParam",
+        "args": [
+          "tag"
+        ],
+        "equals": [
+          "a",
+          "b"
+        ]
+      }
+    ]
   }
 ]
