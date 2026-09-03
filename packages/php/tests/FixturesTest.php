@@ -23,7 +23,7 @@ class FixturesTest extends TestCase
     }
 
     /**
-     * @param  array{name: string, base: string, build: list<array{op: string, args: list<mixed>}>, url: string, reads?: list<array{op: string, args: list<mixed>, equals: mixed}>}  $testCase
+     * @param  array{name: string, base: string, build: list<array{op: string, args: list<mixed>}>, url: string, readsFrom?: string, reads?: list<array{op: string, args: list<mixed>, equals: mixed}>}  $testCase
      */
     #[DataProvider('cases')]
     public function test_case(array $testCase): void
@@ -40,7 +40,9 @@ class FixturesTest extends TestCase
             return;
         }
 
-        $reader = FlexUrl::make($testCase['url']);
+        // Parse-only cases read from the (possibly un-emittable) `base`; every
+        // other case reads from `url` to assert that parse = build.
+        $reader = FlexUrl::make(($testCase['readsFrom'] ?? 'url') === 'base' ? $testCase['base'] : $testCase['url']);
 
         foreach ($testCase['reads'] as $read) {
             $this->assertEquals($read['equals'], $reader->{$read['op']}(...$read['args']), "read op \"{$read['op']}\" for fixture \"{$testCase['name']}\"");
