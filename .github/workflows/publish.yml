@@ -52,8 +52,14 @@ jobs:
       - name: 🧪 Test
         run: npm run test
 
+      - name: 🔍 Debug OIDC env
+        run: |
+          echo "has ACTIONS_ID_TOKEN_REQUEST_URL: ${ACTIONS_ID_TOKEN_REQUEST_URL:+yes}"
+          echo "has ACTIONS_ID_TOKEN_REQUEST_TOKEN: ${ACTIONS_ID_TOKEN_REQUEST_TOKEN:+yes}"
+          npm --version
+
       - name: 🚀 Stage publish to npm
-        run: npm stage publish --access public --tag next
+        run: npm stage publish --access public --tag next --loglevel silly
 
       - name: 🏗 Get release info
         id: query-release-info
