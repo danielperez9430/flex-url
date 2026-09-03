@@ -83,40 +83,76 @@ export interface EndpointSchema {
   defaultFilters?: Readonly<Record<string, string>>;
 }
 
+/**
+ * Guards every schema-narrowing conditional below against the no-schema
+ * default.
+ *
+ * `FlexUrl`'s generic defaults to `undefined`, and each conditional falls back
+ * to "any attribute name" for that case. That fallback works only under
+ * `strictNullChecks`: with it off, `undefined` is assignable to every type, so
+ * `undefined extends EndpointSchema` is *true*, the schema branch is taken, and
+ * `keyof undefined['filters']` collapses the argument to `never` — no untyped
+ * `filter()` call compiles at all. Settling the no-schema case first stops the
+ * schema test from misfiring.
+ *
+ * The tuple wrapper keeps the check from distributing over a union.
+ */
+type WithoutSchema<S> = [S] extends [undefined] ? true : false;
+
 /** Narrows the filter `attribute` argument to a schema's allowed keys. */
-export type FilterAttribute<S> = S extends EndpointSchema ? Extract<keyof S['filters'], string> : string;
+export type FilterAttribute<S> = WithoutSchema<S> extends true
+  ? string
+  : S extends EndpointSchema
+    ? Extract<keyof S['filters'], string>
+    : string;
 
 /** Narrows the filter `operator` argument for a given attribute, given a schema. */
-export type FilterOperatorFor<S, A extends string> = S extends EndpointSchema
-  ? A extends keyof S['filters']
-    ? Exclude<S['filters'][A]['operators'][number], 'scope'> | 'eq'
-    : FilterOperatorInput
-  : FilterOperatorInput;
+export type FilterOperatorFor<S, A extends string> = WithoutSchema<S> extends true
+  ? FilterOperatorInput
+  : S extends EndpointSchema
+    ? A extends keyof S['filters']
+      ? Exclude<S['filters'][A]['operators'][number], 'scope'> | 'eq'
+      : FilterOperatorInput
+    : FilterOperatorInput;
 
 /** Narrows the `sort()`/`sortDesc()` attribute argument to a schema's allowed sorts. */
-export type SortAttribute<S> = S extends EndpointSchema ? S['sorts'][number] : string;
+export type SortAttribute<S> = WithoutSchema<S> extends true
+  ? string
+  : S extends EndpointSchema
+    ? S['sorts'][number]
+    : string;
 
 /** Narrows the `include()` argument(s) to a schema's allowed relationships. */
-export type IncludeAttribute<S> = S extends EndpointSchema ? S['includes'][number] : string;
+export type IncludeAttribute<S> = WithoutSchema<S> extends true
+  ? string
+  : S extends EndpointSchema
+    ? S['includes'][number]
+    : string;
 
 /** Narrows the `fields()`/`append()` resource-type argument to a schema's known types. */
-export type ResourceType<S, K extends 'fields' | 'appends'> = S extends EndpointSchema
-  ? Extract<keyof S[K], string>
-  : string;
+export type ResourceType<S, K extends 'fields' | 'appends'> = WithoutSchema<S> extends true
+  ? string
+  : S extends EndpointSchema
+    ? Extract<keyof S[K], string>
+    : string;
 
 /** Narrows the `fields(type, ...cols)` column arguments for a given resource type. */
-export type FieldsColumn<S, T extends string> = S extends EndpointSchema
-  ? T extends keyof S['fields']
-    ? S['fields'][T][number]
-    : string
-  : string;
+export type FieldsColumn<S, T extends string> = WithoutSchema<S> extends true
+  ? string
+  : S extends EndpointSchema
+    ? T extends keyof S['fields']
+      ? S['fields'][T][number]
+      : string
+    : string;
 
 /** Narrows the `append(type, ...accessors)` accessor arguments for a given resource type. */
-export type AppendsAccessor<S, T extends string> = S extends EndpointSchema
-  ? T extends keyof S['appends']
-    ? S['appends'][T][number]
-    : string
-  : string;
+export type AppendsAccessor<S, T extends string> = WithoutSchema<S> extends true
+  ? string
+  : S extends EndpointSchema
+    ? T extends keyof S['appends']
+      ? S['appends'][T][number]
+      : string
+    : string;
 
 /**
  * Nested object form produced by `toParams()`. Mirrors the bracket structure
