@@ -154,6 +154,15 @@ FlexUrl::make('/posts')->filter('status', 'published')->clear();                
   used as structural separators.
 - Parsing is the exact inverse and accepts **both** raw and percent-encoded brackets/commas on
   input — apiable's own pagination `links` use `page%5Bnumber%5D`.
+- Parsing uses `application/x-www-form-urlencoded` semantics for the query string — what `$_GET`,
+  `Request::query()`, `URLSearchParams` and HTML GET forms all do: a raw `+` decodes to a
+  **space**, `%2B` to a literal plus. Serialising never emits `+` (a space is `%20`), so
+  `FlexUrl::make($url)->toString()` always means the same thing to the server as `$url` did.
+- Parsing never throws and never produces invalid UTF-8. A `%` that isn't followed by two hex
+  digits is a literal `%`, and bytes that don't form valid UTF-8 become U+FFFD — so a stray
+  `?name=%FF` can't make `json_encode()` fail or `response()->json()` throw "Malformed UTF-8
+  characters". The TypeScript mirror runs the same steps over the same bytes, so both languages
+  return identical strings for identical input — malformed input included.
 
 ```php
 FlexUrl::make('/posts')->filter('title', 'a,b')->toString();
@@ -164,6 +173,10 @@ FlexUrl::make('/posts')->filter('title', ['a,b', 'c'])->toString();
 
 FlexUrl::make('/posts?filter[title]=a%2Cb')->getFilter('title'); // "a,b"
 FlexUrl::make('http://x/y?page%5Bnumber%5D=2')->getPage();       // 2
+
+FlexUrl::make('/posts?filter[discount]=20%')->getFilter('discount'); // "20%"  — literal, not a broken escape
+FlexUrl::make('/posts?q=hello+world')->getSearch();                  // "hello world"
+FlexUrl::make('/posts?q=C%2B%2B')->getSearch();                      // "C++"
 ```
 
 ## `search()` vs. `searchFilter()`
