@@ -53,7 +53,7 @@ jobs:
         run: npm run test
 
       - name: 🚀 Stage publish to npm
-        run: npm stage publish --access public --tag next
+        run: npm stage publish --access public
 
       - name: 🏗 Get release info
         id: query-release-info
