@@ -330,7 +330,9 @@ final readonly class FlexUrl implements Stringable
                 $filter = [];
 
                 foreach ($this->state->search['filters'] as $entry) {
-                    $filter[$entry['attribute']] = count($entry['values']) === 1 ? $entry['values'][0] : $entry['values'];
+                    $filter[$entry['attribute']] = count($entry['values']) === 1 && ! $entry['whereIn']
+                        ? $entry['values'][0]
+                        : $entry['values'];
                 }
 
                 $params['q'] = $hasTerm ? ['value' => $this->state->search['term'], 'filter' => $filter] : ['filter' => $filter];
@@ -485,7 +487,10 @@ final readonly class FlexUrl implements Stringable
     {
         foreach ($this->state->search['filters'] as $entry) {
             if ($entry['attribute'] === $attribute) {
-                return count($entry['values']) === 1 ? $entry['values'][0] : $entry['values'];
+                // An explicit `[]` on the wire stays a list even with one value.
+                return count($entry['values']) === 1 && ! $entry['whereIn']
+                    ? $entry['values'][0]
+                    : $entry['values'];
             }
         }
 

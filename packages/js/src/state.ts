@@ -25,6 +25,13 @@ export interface PageState {
 export interface SearchFilterEntry {
   attribute: string;
   values: string[];
+  /**
+   * `true` when the wire used apiable's repeated-`[]` whereIn form. Tracked
+   * separately from `values.length` because `q[filter][tag][]=x` carries one
+   * value but still means "match against a list" — collapsing it to
+   * `q[filter][tag]=x` on the way out would downgrade it to a scalar `where`.
+   */
+  whereIn: boolean;
 }
 
 export interface SearchState {
@@ -209,9 +216,9 @@ export function setSearchTerm(state: FlexUrlState, term: string): FlexUrlState {
   return {...state, search: {...state.search, term}, order: withOrder(state.order, 'q')};
 }
 
-export function setSearchFilter(state: FlexUrlState, attribute: string, values: string[]): FlexUrlState {
+export function setSearchFilter(state: FlexUrlState, attribute: string, values: string[], whereIn = false): FlexUrlState {
   const index = state.search.filters.findIndex(entry => entry.attribute === attribute);
-  const entry: SearchFilterEntry = {attribute, values};
+  const entry: SearchFilterEntry = {attribute, values, whereIn};
 
   const filters =
     index === -1
@@ -349,8 +356,11 @@ export function hydrateFromSearch(state: FlexUrlState, search: string): FlexUrlS
       const attribute = path[1] ?? '';
       const value = decodeValue(rawValue);
       const existing = next.search.filters.find(entry => entry.attribute === attribute);
+      // `q[filter][tag][]` parses to the path ['filter', 'tag', ''] — the empty
+      // third segment is the `[]` marker, and it sticks once any pair carried it.
+      const whereIn = (path.length >= 3 && path[2] === '') || existing?.whereIn === true;
 
-      next = setSearchFilter(next, attribute, existing ? [...existing.values, value] : [value]);
+      next = setSearchFilter(next, attribute, existing ? [...existing.values, value] : [value], whereIn);
       continue;
     }
 
@@ -427,9 +437,10 @@ export function buildQueryString(state: FlexUrlState): string {
       for (const entry of state.search.filters) {
         const key = buildKey('q', ['filter', entry.attribute]);
 
-        // A single value uses the plain key; multiple values use apiable's repeated-`[]`
-        // whereIn() convention rather than the comma-list used elsewhere in the grammar.
-        if (entry.values.length <= 1) {
+        // A single value uses the plain key; multiple values (or a single one that
+        // arrived under an explicit `[]`) use apiable's repeated-`[]` whereIn()
+        // convention rather than the comma-list used elsewhere in the grammar.
+        if (entry.values.length <= 1 && !entry.whereIn) {
           pairs.push(`${key}=${encodeValue(entry.values[0] ?? '')}`);
         } else {
           for (const value of entry.values) pairs.push(`${key}[]=${encodeValue(value)}`);
