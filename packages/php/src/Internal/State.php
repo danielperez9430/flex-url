@@ -159,8 +159,7 @@ final readonly class State
             return self::setFilter($state, $attribute, '', $values);
         }
 
-        $filters = $state->filters;
-        $merged = $filters[$index]['values'];
+        $merged = $state->filters[$index]['values'];
 
         foreach ($values as $value) {
             if (! in_array($value, $merged, true)) {
@@ -168,9 +167,7 @@ final readonly class State
             }
         }
 
-        $filters[$index] = ['attribute' => $attribute, 'operator' => '', 'values' => $merged];
-
-        return self::withFilters($state, $filters);
+        return self::withFilterValuesAt($state, $index, $attribute, $merged);
     }
 
     /**
@@ -188,17 +185,26 @@ final readonly class State
             return $state;
         }
 
-        $filters = $state->filters;
         $remaining = array_values(array_filter(
-            $filters[$index]['values'],
+            $state->filters[$index]['values'],
             static fn (string $value): bool => ! in_array($value, $values, true),
         ));
 
-        if ($remaining === []) {
-            return self::removeFilter($state, $attribute, '');
-        }
+        return $remaining === []
+            ? self::removeFilter($state, $attribute, '')
+            : self::withFilterValuesAt($state, $index, $attribute, $remaining);
+    }
 
-        $filters[$index] = ['attribute' => $attribute, 'operator' => '', 'values' => $remaining];
+    /**
+     * A copy of `$state` with the values of the plain filter at `$index`
+     * swapped out.
+     *
+     * @param  list<string>  $values
+     */
+    private static function withFilterValuesAt(self $state, int $index, string $attribute, array $values): self
+    {
+        $filters = $state->filters;
+        $filters[$index] = ['attribute' => $attribute, 'operator' => '', 'values' => $values];
 
         return self::withFilters($state, $filters);
     }

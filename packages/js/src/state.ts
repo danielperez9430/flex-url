@@ -126,21 +126,30 @@ export function mergeFilterFromParse(state: FlexUrlState, attribute: string, ope
  * creating the entry when it doesn't exist yet. Operates on the bracket-less
  * entry — a multi-value list and a comparison operator don't combine.
  */
+/** Index of the plain (bracket-less) entry for an attribute, or `-1`. */
+function plainFilterIndex(state: FlexUrlState, attribute: string): number {
+  return state.filters.findIndex(entry => entry.attribute === attribute && entry.operator === '');
+}
+
+/** A copy of `state` with the values of the filter at `index` swapped out. */
+function withFilterValuesAt(state: FlexUrlState, index: number, values: string[]): FlexUrlState {
+  return {...state, filters: state.filters.map((entry, i) => (i === index ? {...entry, values} : entry))};
+}
+
 export function addFilterValues(state: FlexUrlState, attribute: string, values: readonly string[]): FlexUrlState {
-  const index = state.filters.findIndex(entry => entry.attribute === attribute && entry.operator === '');
+  const index = plainFilterIndex(state, attribute);
 
   if (index === -1) {
     return setFilter(state, attribute, '', [...values]);
   }
 
-  const existing = state.filters[index]?.values ?? [];
-  const merged = [...existing];
+  const merged = [...(state.filters[index]?.values ?? [])];
 
   for (const value of values) {
     if (!merged.includes(value)) merged.push(value);
   }
 
-  return {...state, filters: state.filters.map((entry, i) => (i === index ? {...entry, values: merged} : entry))};
+  return withFilterValuesAt(state, index, merged);
 }
 
 /**
@@ -149,17 +158,13 @@ export function addFilterValues(state: FlexUrlState, attribute: string, values: 
  * multi-select UI wants and what callers otherwise hand-roll.
  */
 export function removeFilterValues(state: FlexUrlState, attribute: string, values: readonly string[]): FlexUrlState {
-  const index = state.filters.findIndex(entry => entry.attribute === attribute && entry.operator === '');
+  const index = plainFilterIndex(state, attribute);
 
   if (index === -1) return state;
 
   const remaining = (state.filters[index]?.values ?? []).filter(value => !values.includes(value));
 
-  if (remaining.length === 0) {
-    return removeFilter(state, attribute, '');
-  }
-
-  return {...state, filters: state.filters.map((entry, i) => (i === index ? {...entry, values: remaining} : entry))};
+  return remaining.length === 0 ? removeFilter(state, attribute, '') : withFilterValuesAt(state, index, remaining);
 }
 
 export function removeFilter(state: FlexUrlState, attribute: string, operator?: string): FlexUrlState {
