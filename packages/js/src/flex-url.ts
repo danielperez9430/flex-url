@@ -50,6 +50,17 @@ function toValueList(value: ScalarValue | ScalarValue[]): string[] {
 }
 
 /**
+ * A stored page value only becomes a number when it actually *is* one. A URL
+ * is user-supplied, so `page[number]=abc` is entirely possible; `Number()`
+ * would hand back `NaN` (and `(int)` on the PHP side would hand back `0`, or
+ * `20` for `page[size]=20%`), silently poisoning arithmetic downstream. Both
+ * mirrors return "absent" instead.
+ */
+function toInteger(value: string | undefined): number | undefined {
+  return value !== undefined && /^-?\d+$/.test(value) ? Number(value) : undefined;
+}
+
+/**
  * Set a value at a dot-free nested path inside a plain object, creating
  * intermediate objects as needed. Used by `toParams()` to mirror the wire's
  * bracket nesting (`filter[due_at][gte]` → `{filter: {due_at: {gte: ...}}}`).
@@ -404,12 +415,14 @@ export class FlexUrl<S extends EndpointSchema | undefined = undefined> {
     return [...this.state.includes];
   }
 
+  /** `undefined` when absent *or* when the URL carried a non-integer (`page[number]=abc`). */
   getPage(): number | undefined {
-    return this.state.page.number === undefined ? undefined : Number(this.state.page.number);
+    return toInteger(this.state.page.number);
   }
 
+  /** `undefined` when absent *or* when the URL carried a non-integer (`page[size]=20%`). */
   getPageSize(): number | undefined {
-    return this.state.page.size === undefined ? undefined : Number(this.state.page.size);
+    return toInteger(this.state.page.size);
   }
 
   getPageCursor(): string | undefined {

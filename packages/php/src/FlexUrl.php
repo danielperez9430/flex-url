@@ -426,14 +426,28 @@ final readonly class FlexUrl implements Stringable
         return $this->state->includes;
     }
 
+    /** `null` when absent *or* when the URL carried a non-integer (`page[number]=abc`). */
     public function getPage(): ?int
     {
-        return isset($this->state->page['number']) ? (int) $this->state->page['number'] : null;
+        return self::toInteger($this->state->page['number'] ?? null);
     }
 
+    /** `null` when absent *or* when the URL carried a non-integer (`page[size]=20%`). */
     public function getPageSize(): ?int
     {
-        return isset($this->state->page['size']) ? (int) $this->state->page['size'] : null;
+        return self::toInteger($this->state->page['size'] ?? null);
+    }
+
+    /**
+     * A stored page value only becomes a number when it actually *is* one. A
+     * URL is user-supplied, so `page[number]=abc` is entirely possible; `(int)`
+     * would hand back `0` (and `20` for `page[size]=20%`, quietly discarding
+     * the `%`), silently poisoning arithmetic downstream. Both mirrors return
+     * "absent" instead.
+     */
+    private static function toInteger(?string $value): ?int
+    {
+        return $value !== null && preg_match('/^-?\d+$/', $value) === 1 ? (int) $value : null;
     }
 
     public function getPageCursor(): ?string
