@@ -31,8 +31,6 @@ use Stringable;
  */
 final readonly class FlexUrl implements Stringable
 {
-    public const VERSION = '2.0.0-0';
-
     private function __construct(private State $state) {}
 
     /**

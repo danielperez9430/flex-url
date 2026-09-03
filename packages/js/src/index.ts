@@ -38,5 +38,3 @@ export type {
   SortDirection,
   SortEntry,
 } from './types.js';
-
-export const VERSION = '2.0.0-0';

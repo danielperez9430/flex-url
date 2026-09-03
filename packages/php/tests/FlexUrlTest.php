@@ -11,11 +11,6 @@ use function flex_url;
 
 class FlexUrlTest extends TestCase
 {
-    public function test_exposes_the_current_pre_release_version(): void
-    {
-        $this->assertSame('2.0.0-0', FlexUrl::VERSION);
-    }
-
     public function test_make_returns_a_bare_builder_when_no_url_given(): void
     {
         $this->assertSame('', FlexUrl::make()->toString());
