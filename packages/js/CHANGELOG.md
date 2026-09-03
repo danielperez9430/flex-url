@@ -23,6 +23,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   read, so callers had to go through `toParams()` and re-derive the value
   from its wire form.
 
+### Fixed
+
+- The `EndpointSchema` generic no longer breaks under `strictNullChecks: false`.
+  With that flag off, `undefined` is assignable to every type, so the no-schema
+  default took the schema branch of each narrowing conditional and collapsed
+  every attribute argument to `never`, so `flexUrl('/posts').filter('owner')`
+  did not compile at all. Projects hit this with no obvious cause and worked
+  around it by passing the base `EndpointSchema` as an explicit generic; that
+  workaround still works and is no longer needed.
+
 ## [2.0.1] - 2026-09-03
 
 ### Fixed

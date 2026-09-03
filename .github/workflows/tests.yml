@@ -31,6 +31,9 @@ jobs:
       - name: Lint
         run: npm run lint --workspaces --if-present
 
+      - name: Typecheck
+        run: npm run typecheck --workspaces --if-present
+
       - name: Build
         run: npm run build --workspaces --if-present
 
