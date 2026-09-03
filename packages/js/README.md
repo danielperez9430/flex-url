@@ -205,6 +205,20 @@ flexUrl('/posts?q=hello+world').getSearch();                  // "hello world"
 flexUrl('/posts?q=C%2B%2B').getSearch();                      // "C++"
 ```
 
+A value you pass to the builder is always percent-encoded, so a leading `+` is safe: a phone
+number goes out as `%2B` and parses back identically. The `+`-is-a-space rule only applies to a
+raw `+` that was already on the wire — which is what the server reads it as too, so flex-url and
+`Request::query()` never disagree:
+
+```ts
+flexUrl('/contacts').filter('phone', '+34600123456').toString();
+// "/contacts?filter[phone]=%2B34600123456"  — same as URLSearchParams and any <form>
+flexUrl('/contacts?filter[phone]=%2B34600123456').getFilter('phone'); // "+34600123456"
+
+flexUrl('/contacts?filter[phone]=+34600123456').getFilter('phone');   // " 34600123456"
+// a hand-written raw "+" — PHP's parse_str() and Laravel read that as a space as well
+```
+
 ## `search()` vs. `searchFilter()`
 
 `search(term)` sets the top-level `q=term`. `searchFilter(attribute, values)` narrows the search

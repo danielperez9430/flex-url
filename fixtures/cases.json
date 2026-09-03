@@ -1513,5 +1513,64 @@
         "equals": "/posts?filter[title]=a%2Cb"
       }
     ]
+  },
+  {
+    "name": "a leading + in a value round-trips as %2B (phone numbers)",
+    "base": "/contacts",
+    "build": [
+      {
+        "op": "filter",
+        "args": [
+          "phone",
+          "+34600123456"
+        ]
+      }
+    ],
+    "url": "/contacts?filter[phone]=%2B34600123456",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "phone"
+        ],
+        "equals": "+34600123456"
+      }
+    ]
+  },
+  {
+    "name": "a + inside a search term round-trips as %2B",
+    "base": "/contacts",
+    "build": [
+      {
+        "op": "search",
+        "args": [
+          "+34600123456"
+        ]
+      }
+    ],
+    "url": "/contacts?q=%2B34600123456",
+    "reads": [
+      {
+        "op": "getSearch",
+        "args": [],
+        "equals": "+34600123456"
+      }
+    ]
+  },
+  {
+    "name": "a percent-encoded + parses as a literal plus, never as a space",
+    "base": "/contacts?filter[phone]=%2B34600123456",
+    "build": [],
+    "url": "/contacts?filter[phone]=%2B34600123456",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "phone"
+        ],
+        "equals": "+34600123456"
+      }
+    ]
   }
 ]
