@@ -144,6 +144,66 @@ final readonly class State
     }
 
     /**
+     * Adds values to a filter's existing list, skipping ones already there, and
+     * creating the entry when it doesn't exist yet. Operates on the
+     * bracket-less entry — a multi-value list and a comparison operator don't
+     * combine.
+     *
+     * @param  list<string>  $values
+     */
+    public static function addFilterValues(self $state, string $attribute, array $values): self
+    {
+        $index = self::findFilterIndex($state->filters, $attribute, '');
+
+        if ($index === null) {
+            return self::setFilter($state, $attribute, '', $values);
+        }
+
+        $filters = $state->filters;
+        $merged = $filters[$index]['values'];
+
+        foreach ($values as $value) {
+            if (! in_array($value, $merged, true)) {
+                $merged[] = $value;
+            }
+        }
+
+        $filters[$index] = ['attribute' => $attribute, 'operator' => '', 'values' => $merged];
+
+        return self::withFilters($state, $filters);
+    }
+
+    /**
+     * Drops values from a filter's list, removing the whole entry once nothing
+     * is left — "unticking the last checkbox clears the filter", which is what
+     * every multi-select UI wants and what callers otherwise hand-roll.
+     *
+     * @param  list<string>  $values
+     */
+    public static function removeFilterValues(self $state, string $attribute, array $values): self
+    {
+        $index = self::findFilterIndex($state->filters, $attribute, '');
+
+        if ($index === null) {
+            return $state;
+        }
+
+        $filters = $state->filters;
+        $remaining = array_values(array_filter(
+            $filters[$index]['values'],
+            static fn (string $value): bool => ! in_array($value, $values, true),
+        ));
+
+        if ($remaining === []) {
+            return self::removeFilter($state, $attribute, '');
+        }
+
+        $filters[$index] = ['attribute' => $attribute, 'operator' => '', 'values' => $remaining];
+
+        return self::withFilters($state, $filters);
+    }
+
+    /**
      * Removes a filter. `$operator === null` removes every entry for the
      * attribute regardless of operator; `$operator === ''` removes only the
      * plain (bracket-less) entry.
@@ -161,6 +221,32 @@ final readonly class State
             },
         ));
 
+        return new self(
+            origin: $state->origin,
+            pathname: $state->pathname,
+            hash: $state->hash,
+            order: $state->order,
+            filters: $filters,
+            sorts: $state->sorts,
+            includes: $state->includes,
+            fields: $state->fields,
+            fieldsOrder: $state->fieldsOrder,
+            appends: $state->appends,
+            appendsOrder: $state->appendsOrder,
+            page: $state->page,
+            search: $state->search,
+            raw: $state->raw,
+        );
+    }
+
+    /**
+     * A copy of `$state` with `$filters` swapped in and everything else kept.
+     * Only for updates to entries that already exist, so `order` is untouched.
+     *
+     * @param  list<FilterEntry>  $filters
+     */
+    private static function withFilters(self $state, array $filters): self
+    {
         return new self(
             origin: $state->origin,
             pathname: $state->pathname,
@@ -567,6 +653,23 @@ final readonly class State
             search: $state->search,
             raw: $raw,
         );
+    }
+
+    /**
+     * Finds a raw param entry by exact path, or `null` when there isn't one.
+     *
+     * @param  list<string>  $path
+     * @return RawEntry|null
+     */
+    public static function findRawParam(self $state, array $path): ?array
+    {
+        foreach ($state->raw as $entry) {
+            if (self::samePath($entry['path'], $path)) {
+                return $entry;
+            }
+        }
+
+        return null;
     }
 
     /**

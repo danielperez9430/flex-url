@@ -29,6 +29,14 @@ export interface SortEntry {
   direction: SortDirection;
 }
 
+/** One `filter[attribute][operator]=values` entry, as returned by `getFilters()`. */
+export interface FilterEntry {
+  attribute: string;
+  /** `''` for a plain `filter[attribute]=value` with no operator bracket. */
+  operator: string;
+  values: string[];
+}
+
 /**
  * Options accepted by `filterScope()`.
  */

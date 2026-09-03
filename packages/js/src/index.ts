@@ -25,6 +25,7 @@ export type {
   AppendsAccessor,
   EndpointSchema,
   FieldsColumn,
+  FilterEntry,
   FilterAttribute,
   FilterOperator,
   FilterOperatorFor,

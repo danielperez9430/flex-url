@@ -7,14 +7,7 @@
  * and independently testable.
  */
 import {buildKey, decodeList, decodeValue, encodeList, encodeValue, parseQueryString} from './encoding.js';
-import type {SortDirection, SortEntry} from './types.js';
-
-export interface FilterEntry {
-  attribute: string;
-  /** `''` for a plain `filter[attribute]=value` with no operator bracket. */
-  operator: string;
-  values: string[];
-}
+import type {FilterEntry, SortDirection, SortEntry} from './types.js';
 
 export interface PageState {
   number?: string;
@@ -126,6 +119,47 @@ export function mergeFilterFromParse(state: FlexUrlState, attribute: string, ope
   );
 
   return {...state, filters};
+}
+
+/**
+ * Adds values to a filter's existing list, skipping ones already there, and
+ * creating the entry when it doesn't exist yet. Operates on the bracket-less
+ * entry — a multi-value list and a comparison operator don't combine.
+ */
+export function addFilterValues(state: FlexUrlState, attribute: string, values: readonly string[]): FlexUrlState {
+  const index = state.filters.findIndex(entry => entry.attribute === attribute && entry.operator === '');
+
+  if (index === -1) {
+    return setFilter(state, attribute, '', [...values]);
+  }
+
+  const existing = state.filters[index]?.values ?? [];
+  const merged = [...existing];
+
+  for (const value of values) {
+    if (!merged.includes(value)) merged.push(value);
+  }
+
+  return {...state, filters: state.filters.map((entry, i) => (i === index ? {...entry, values: merged} : entry))};
+}
+
+/**
+ * Drops values from a filter's list, removing the whole entry once nothing is
+ * left — "unticking the last checkbox clears the filter", which is what every
+ * multi-select UI wants and what callers otherwise hand-roll.
+ */
+export function removeFilterValues(state: FlexUrlState, attribute: string, values: readonly string[]): FlexUrlState {
+  const index = state.filters.findIndex(entry => entry.attribute === attribute && entry.operator === '');
+
+  if (index === -1) return state;
+
+  const remaining = (state.filters[index]?.values ?? []).filter(value => !values.includes(value));
+
+  if (remaining.length === 0) {
+    return removeFilter(state, attribute, '');
+  }
+
+  return {...state, filters: state.filters.map((entry, i) => (i === index ? {...entry, values: remaining} : entry))};
 }
 
 export function removeFilter(state: FlexUrlState, attribute: string, operator?: string): FlexUrlState {
@@ -266,6 +300,11 @@ export function mergeRawParamFromParse(state: FlexUrlState, path: readonly strin
  * what a caller passing a bare key means, since a bare key is how a whole
  * bucket is cleared elsewhere in this API.
  */
+/** Finds a raw param entry by exact path, or `undefined` when there isn't one. */
+export function findRawParam(state: FlexUrlState, path: readonly string[]): RawEntry | undefined {
+  return state.raw.find(entry => samePath(entry.path, path));
+}
+
 export function removeRawParam(state: FlexUrlState, path: readonly string[], includeNested = false): FlexUrlState {
   const matches = (entry: RawEntry): boolean =>
     includeNested ? isPathPrefix(path, entry.path) : samePath(entry.path, path);
