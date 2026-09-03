@@ -20,22 +20,68 @@
  * - `=` is never assumed inside a key/value pair until *after* splitting on
  *   the first raw `=` — decoding before splitting (a v1 bug) would let an
  *   encoded `%3D` inside a value be mistaken for the key/value separator.
+ * - A raw `+` in a query key or value is a SPACE on input (form-urlencoding,
+ *   matching `parse_str` / `Request::query()` / `URLSearchParams`); `%2B` is a
+ *   literal plus. `+` → ` ` is applied *before* percent-decoding. Output never
+ *   emits `+`. Invariant: re-serialising a parsed URL never changes what the
+ *   server reads.
+ * - Decoding never throws and never yields invalid UTF-8. A `%` that isn't
+ *   followed by two hex digits is a literal `%` (so `20%`, `50%off` and `%zz`
+ *   survive), and bytes that don't form valid UTF-8 become U+FFFD. The PHP
+ *   mirror implements the same three steps over the same byte sequence, so
+ *   both languages return identical strings for identical input — including
+ *   malformed input.
  */
 
-/** Percent-encode a single scalar value for the wire. */
+/**
+ * Matches one percent-escape. A `%` not followed by two hex digits simply
+ * doesn't match, and is therefore carried through as a literal `%`.
+ */
+const PERCENT_ESCAPE = /%[0-9A-Fa-f]{2}/g;
+
+/** Non-fatal by contract: invalid byte sequences decode to U+FFFD instead of throwing. */
+const UTF8_DECODER = new TextDecoder('utf-8');
+const UTF8_ENCODER = new TextEncoder();
+
+/** Percent-encode a single scalar value for the wire (space → `%20`, plus → `%2B`). */
 export function encodeValue(value: string): string {
   return encodeURIComponent(value);
 }
 
-/** Percent-decode a single scalar value read off the wire. Never throws. */
+/**
+ * Percent-decode a single scalar value read off the wire, in three steps:
+ * `+` → space, then each `%XX` → its byte, then the whole byte sequence →
+ * UTF-8 (invalid sequences become U+FFFD).
+ *
+ * Deliberately not `decodeURIComponent`, which is all-or-nothing: it throws on
+ * a single malformed escape, discarding the rest of an otherwise fine value,
+ * and its failure mode doesn't line up with what PHP's byte-oriented
+ * `rawurldecode` does — the two implementations diverged on every malformed
+ * or non-UTF-8 input. Never throws.
+ */
 export function decodeValue(raw: string): string {
-  try {
-    return decodeURIComponent(raw);
-  } catch {
-    // Malformed percent-escape: fall back to the raw text rather than throwing,
-    // so a single bad param can't blow up parsing the rest of the URL.
-    return raw;
+  const source = raw.replace(/\+/g, ' ');
+  const bytes: number[] = [];
+  let cursor = 0;
+
+  const pushText = (text: string): void => {
+    for (const byte of UTF8_ENCODER.encode(text)) bytes.push(byte);
+  };
+
+  for (const match of source.matchAll(PERCENT_ESCAPE)) {
+    const start = match.index ?? 0;
+
+    // Text between the previous escape and this one is literal — encode it as
+    // UTF-8 in one go so surrogate pairs stay intact.
+    if (start > cursor) pushText(source.slice(cursor, start));
+
+    bytes.push(Number.parseInt(match[0].slice(1), 16));
+    cursor = start + match[0].length;
   }
+
+  if (cursor < source.length) pushText(source.slice(cursor));
+
+  return UTF8_DECODER.decode(Uint8Array.from(bytes));
 }
 
 /** Encode a list of values into their raw-comma-joined wire representation. */
