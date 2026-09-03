@@ -2,7 +2,7 @@
 
 An immutable, fluent URL builder/parser for the [Laravel Apiable](https://github.com/open-southeners/laravel-apiable)
 request-query grammar — `filter`, `sort`, `include`, `fields`, `appends`, `page` and `q`. Zero
-runtime dependencies. PHP mirror of [`@open-southeners/flex-url`](../js) — method names and
+runtime dependencies. PHP mirror of [`flex-url`](../js) — method names and
 wire semantics are kept identical on purpose.
 
 ```php

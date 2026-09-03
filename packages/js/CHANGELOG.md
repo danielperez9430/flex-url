@@ -51,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`flexUrl(path)`) is unaffected. When a schema object is supplied at
   runtime, unrecognised filters/sorts/includes/fields/appends log a
   `console.warn` (never throws, never changes behaviour).
-- **`@open-southeners/flex-url/links` subpath**: `links(doc)`, `meta(doc)`,
+- **`flex-url/links` subpath**: `links(doc)`, `meta(doc)`,
   `nextUrl(doc)`, `prevUrl(doc)` read JSON:API pagination `links`/`meta` off
   a response document — works with apiable's length-aware, simple, and
   cursor pagination shapes. Kept as a separate entry point so it's
@@ -70,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the value the server saw. Serialising still never emits `+`, so a parsed
   URL round-trips to the same meaning server-side.
 - **v2 reset**: the package is being rebuilt from scratch as a scoped
-  `@open-southeners/flex-url` package targeting the apiable request grammar
+  `flex-url` package targeting the apiable request grammar
   (filters, sorts, includes, fields, appends, pagination, search), with an
   immutable builder API and a mirrored PHP package. The 1.x line is preserved
   in git history for reference.

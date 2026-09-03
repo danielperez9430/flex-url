@@ -1,6 +1,6 @@
 /**
  * JSON:API `links`/`meta` helpers — deliberately kept out of the main entry
- * point (`import ... from '@open-southeners/flex-url/links'`) so consumers
+ * point (`import ... from 'flex-url/links'`) so consumers
  * that only need the URL builder don't pull this in. No resource
  * deserialisation here — that's out of scope for v2 (see the design plan).
  */

@@ -1,10 +1,10 @@
 /**
- * `@open-southeners/flex-url` — an immutable, fluent URL builder/parser for
+ * `flex-url` — an immutable, fluent URL builder/parser for
  * the apiable request-query grammar (`filter`, `sort`, `include`, `fields`,
  * `appends`, `page`, `q`).
  *
  * ```ts
- * import {url} from '@open-southeners/flex-url';
+ * import {url} from 'flex-url';
  *
  * url('https://api.example.com/posts')
  *   .filter('status', 'published')
@@ -16,7 +16,7 @@
  * ```
  *
  * The `links(doc)`/`meta(doc)`/`nextUrl(doc)`/`prevUrl(doc)` JSON:API
- * pagination helpers live at the `@open-southeners/flex-url/links` subpath
+ * pagination helpers live at the `flex-url/links` subpath
  * so they can be tree-shaken out when unused.
  */
 export {FlexUrl, flexUrl, url} from './flex-url.js';

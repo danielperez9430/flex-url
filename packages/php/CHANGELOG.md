@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (mirrors the TypeScript package's method of the same name).
 - New `open-southeners/flex-url` package: an immutable, fluent `FlexUrl`
   builder/parser for the apiable request-query grammar — the PHP mirror of
-  `@open-southeners/flex-url`, with identical method names and wire semantics.
+  `flex-url`, with identical method names and wire semantics.
   `FlexUrl::make()`/`FlexUrl::from()` and the global `flex_url()` helper cover
   `filter()` (with `eq`/`equal`/`like`/`gt`/`gte`/`lt`/`lte` operators,
   comma-joined multi-values, and range filters via two calls or the
