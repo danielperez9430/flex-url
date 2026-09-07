@@ -9,6 +9,13 @@ use PHPUnit\Framework\TestCase;
 
 use function flex_url;
 
+/**
+ * `FlexUrl` and the `Internal\*` cores are called statically by design — see
+ * their own docblocks. Same exemption the source classes carry, so the rule
+ * stops re-reporting on whichever lines a pull request happens to touch.
+ *
+ * @SuppressWarnings("PHPMD.StaticAccess")
+ */
 class FlexUrlTest extends TestCase
 {
     public function test_make_returns_a_bare_builder_when_no_url_given(): void
