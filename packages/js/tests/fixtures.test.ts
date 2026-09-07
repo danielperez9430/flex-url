@@ -53,6 +53,11 @@ describe('shared fixtures (fixtures/cases.json)', () => {
 
       expect(builder.toString()).toBe(testCase.url);
 
+      // Re-parsing the canonical output must reproduce it byte for byte. Asserted
+      // for every case rather than a chosen few: it is the invariant that breaks
+      // first when encoding and parsing stop being exact inverses of each other.
+      expect(flexUrl(testCase.url).toString()).toBe(testCase.url);
+
       if (!testCase.reads) return;
 
       const reader: AnyBuilder = flexUrl(testCase.readsFrom === 'base' ? testCase.base : testCase.url);

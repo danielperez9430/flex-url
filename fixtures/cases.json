@@ -1993,5 +1993,146 @@
         "equals": "Smith, John"
       }
     ]
+  },
+  {
+    "name": "a server-normalised fields list still parses as a list",
+    "base": "https://api.example.com/posts?fields%5Bpost%5D=title%2Cbody",
+    "build": [],
+    "url": "https://api.example.com/posts?fields[post]=title,body",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getFields",
+        "args": [
+          "post"
+        ],
+        "equals": [
+          "title",
+          "body"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "a server-normalised appends list still parses as a list",
+    "base": "https://api.example.com/posts?appends%5Bpost%5D=is_overdue%2Cslug",
+    "build": [],
+    "url": "https://api.example.com/posts?appends[post]=is_overdue,slug",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getAppends",
+        "args": [
+          "post"
+        ],
+        "equals": [
+          "is_overdue",
+          "slug"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "a double-encoded comma stays literal text, not a separator",
+    "base": "https://api.example.com/posts?filter[a]=x%252Cy",
+    "build": [],
+    "url": "https://api.example.com/posts?filter[a]=x%252Cy",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "a"
+        ],
+        "equals": "x%2Cy"
+      }
+    ]
+  },
+  {
+    "name": "empty segments in a list are preserved, matching explode()",
+    "base": "https://api.example.com/posts?filter[a]=x,,y",
+    "build": [],
+    "url": "https://api.example.com/posts?filter[a]=x,,y",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "a"
+        ],
+        "equals": [
+          "x",
+          "",
+          "y"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "a comma in a q[filter] value stays literal (it is not a comma list)",
+    "base": "https://api.example.com/posts?q[filter][tag]=a,b",
+    "build": [],
+    "url": "https://api.example.com/posts?q[filter][tag]=a%2Cb",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getSearchFilter",
+        "args": [
+          "tag"
+        ],
+        "equals": "a,b"
+      }
+    ]
+  },
+  {
+    "name": "a comma in a raw param stays literal",
+    "base": "https://api.example.com/posts",
+    "build": [
+      {
+        "op": "param",
+        "args": [
+          "note",
+          "a,b"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?note=a%2Cb",
+    "reads": [
+      {
+        "op": "getParam",
+        "args": [
+          "note"
+        ],
+        "equals": "a,b"
+      }
+    ]
+  },
+  {
+    "name": "addFilterValue appends to a server-normalised list",
+    "base": "https://api.example.com/posts?filter%5Ba%5D=1%2C2",
+    "build": [
+      {
+        "op": "addFilterValue",
+        "args": [
+          "a",
+          "3"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[a]=1,2,3"
+  },
+  {
+    "name": "toggleFilterValue removes from a server-normalised list",
+    "base": "https://api.example.com/posts?filter%5Ba%5D=1%2C2",
+    "build": [
+      {
+        "op": "toggleFilterValue",
+        "args": [
+          "a",
+          "2"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[a]=1"
   }
 ]
