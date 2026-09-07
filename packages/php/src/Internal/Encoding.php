@@ -13,12 +13,22 @@ namespace OpenSoutheners\FlexUrl\Internal;
  *   RAW on output — this matches apiable's own idiom and its generated
  *   pagination links.
  * - Every individual value is percent-encoded the same way JavaScript's
- *   `encodeURIComponent` would *before* being joined into a list. A literal
- *   comma/bracket/space/`%`/`=`/`&` inside one value can never be confused
- *   with the raw commas/brackets used as structural separators.
- * - Parsing is the exact inverse: values are split on RAW commas first
- *   (never on a decoded `%2C`), then each piece is individually decoded.
- *   Keys are decoded as a whole before their bracket structure is parsed, so
+ *   `encodeURIComponent` would *before* being joined into a list, so a literal
+ *   bracket/space/`%`/`=`/`&` inside one value can never be confused with the
+ *   structural characters.
+ * - A COMMA IS ALWAYS A SEPARATOR in a list-valued param, whether it arrives
+ *   raw or as `%2C`. Lists are decoded first and split afterwards, and a comma
+ *   inside a value is emitted raw rather than escaped. apiable does the same
+ *   thing — `explode(',', $decodedValue)` for `filter`, `sort`, `include`,
+ *   `fields` and `appends` — so `%2C` and `,` were never distinguishable
+ *   server-side, and pretending otherwise made flex-url report one opaque
+ *   value for a URL the backend filters by several. It also could not survive
+ *   a round-trip: Symfony's `normalizeQueryString()` (behind `fullUrl()`, and
+ *   so behind every Inertia response) rewrites `filter[a]=1,2` as
+ *   `filter%5Ba%5D=1%2C2`. A comma inside a single value is therefore not
+ *   representable. Scalar params (`q`, `page[...]`, `param()`) are unaffected:
+ *   nothing splits them, so their commas stay literal.
+ * - Keys are decoded as a whole before their bracket structure is parsed, so
  *   `filter[status]` and the percent-encoded `filter%5Bstatus%5D` (as used
  *   by apiable's own pagination links) both parse identically.
  * - `=` is never assumed inside a key/value pair until *after* splitting on
@@ -87,19 +97,29 @@ final class Encoding
     }
 
     /**
-     * Encode a list of values into their raw-comma-joined wire representation.
+     * Encode a list of values into their comma-joined wire representation.
+     *
+     * A comma inside a value is *not* escaped, because in list position there
+     * is nothing to escape it from: the server splits the decoded value on
+     * every comma, so `%2C` and `,` mean the same thing to it. Emitting the
+     * comma raw keeps `toString()` idempotent.
      *
      * @param  list<string>  $values
      */
     public static function encodeList(array $values): string
     {
-        return implode(',', array_map(self::encodeValue(...), $values));
+        $encoded = array_map(
+            static fn (string $value): string => str_replace('%2C', ',', self::encodeValue($value)),
+            $values,
+        );
+
+        return implode(',', $encoded);
     }
 
     /**
-     * Split a raw (still percent-encoded) value on literal commas — never on
-     * a decoded `%2C` — then decode each resulting piece individually. An
-     * empty raw string yields an empty list rather than `['']`.
+     * Decode a raw value, then split it on every comma — a comma is a
+     * separator however it was encoded. An empty raw string yields an empty
+     * list rather than `['']`.
      *
      * @return list<string>
      */
@@ -109,7 +129,7 @@ final class Encoding
             return [];
         }
 
-        return array_map(self::decodeValue(...), explode(',', $raw));
+        return explode(',', self::decodeValue($raw));
     }
 
     /** Encode a single key segment (attribute/type/operator name) for use inside brackets. */

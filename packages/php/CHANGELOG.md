@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **A comma in a list-valued param is now always a separator**, whether it
+  arrives raw or percent-encoded. Lists are decoded first and split afterwards,
+  and a comma inside a value is emitted raw rather than escaped.
+
+  The old behaviour treated `%2C` as an escaped literal, which could not
+  survive a round-trip: Symfony's `normalizeQueryString()` — behind Laravel's
+  `fullUrl()`, and so behind every Inertia response — rewrites `filter[a]=1,2`
+  as `filter%5Ba%5D=1%2C2`. Reading that back gave the single opaque value
+  `"1,2"`, and `removeFilterValue('a', '1')` silently did nothing. It affected
+  `filter`, `sort`, `include`, `fields` and `appends`; a `sort=a%2C-b` produced
+  an axis literally named `a,-b`.
+
+  It was also wrong independently of the round-trip: apiable splits the
+  *decoded* value (`explode(',', ...)`), so `%2C` and `,` were never
+  distinguishable server-side, and flex-url was reporting one value for a URL
+  the backend filters by several.
+
+  A comma inside a single value is no longer representable — the same
+  limitation as OpenAPI's `style: form, explode: false`. Scalar params (`q`,
+  `page[...]`, `param()`) are unaffected: nothing splits them, so their commas
+  stay literal.
+
 ## [2.1.0] - 2026-09-04
 
 ### Added

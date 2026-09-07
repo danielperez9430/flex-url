@@ -185,12 +185,16 @@ $u->removeParam('custom_sort');       // "/posts"
 - Structural brackets (`filter[attr][op]`) and the comma that separates multiple values
   (`filter[status]=published,draft`) are emitted **raw**, matching apiable's own idiom and its
   generated pagination links.
-- Every individual value is percent-encoded (matching JavaScript's `encodeURIComponent`, not raw
-  `rawurlencode()`) *before* being joined into a list — a literal comma/bracket/space/`%`/`=`/`&`
-  inside one value is always escaped, so it can never be confused with the raw commas/brackets
-  used as structural separators.
-- Parsing is the exact inverse and accepts **both** raw and percent-encoded brackets/commas on
-  input — apiable's own pagination `links` use `page%5Bnumber%5D`.
+- Every individual value is percent-encoded *before* being joined into a list, so a literal
+  bracket/space/`%`/`=`/`&` inside one value can never be confused with the structural characters.
+- **A comma is always a separator** in a list-valued param, whether it arrives raw or as `%2C`.
+  apiable splits the *decoded* value (`explode(',', …)` for `filter`, `sort`, `include`, `fields`
+  and `appends`), so the two were never distinguishable server-side — and the distinction could
+  not survive a round-trip anyway, since Symfony's `normalizeQueryString()` (behind `fullUrl()`, and so behind every Inertia response) rewrites `filter[a]=1,2` as
+  `filter%5Ba%5D=1%2C2`. A comma inside a single value is therefore not representable. Scalar
+  params (`q`, `page[...]`, `param()`) are unaffected — nothing splits them.
+- Parsing accepts **both** raw and percent-encoded brackets on input — apiable's own pagination
+  `links` use `page%5Bnumber%5D`.
 - Parsing uses `application/x-www-form-urlencoded` semantics for the query string — what `$_GET`,
   `Request::query()`, `URLSearchParams` and HTML GET forms all do: a raw `+` decodes to a
   **space**, `%2B` to a literal plus. Serialising never emits `+` (a space is `%20`), so
@@ -202,13 +206,13 @@ $u->removeParam('custom_sort');       // "/posts"
   return identical strings for identical input — malformed input included.
 
 ```php
-FlexUrl::make('/posts')->filter('title', 'a,b')->toString();
-// "/posts?filter[title]=a%2Cb"  — the comma is part of the value, not a separator
+FlexUrl::make('/posts')->filter('title', ['a', 'b'])->toString();
+// "/posts?filter[title]=a,b"
 
-FlexUrl::make('/posts')->filter('title', ['a,b', 'c'])->toString();
-// "/posts?filter[title]=a%2Cb,c"  — first item's comma escaped, the separator comma stays raw
+FlexUrl::make('/posts?filter[title]=a,b')->getFilter('title');       // ["a", "b"]
+FlexUrl::make('/posts?filter%5Btitle%5D=a%2Cb')->getFilter('title'); // ["a", "b"] — same, after a round-trip
 
-FlexUrl::make('/posts?filter[title]=a%2Cb')->getFilter('title'); // "a,b"
+FlexUrl::make('/posts?q=Smith%2C%20John')->getSearch();              // "Smith, John" — scalar, not split
 FlexUrl::make('http://x/y?page%5Bnumber%5D=2')->getPage();       // 2
 
 FlexUrl::make('/posts?filter[discount]=20%')->getFilter('discount'); // "20%"  — literal, not a broken escape
