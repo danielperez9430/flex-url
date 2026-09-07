@@ -954,7 +954,7 @@
     "url": "?filter[status]=published"
   },
   {
-    "name": "a value containing a literal comma is percent-encoded to avoid the OR-separator",
+    "name": "a comma in a value passed to the builder is emitted raw, as a separator",
     "base": "https://api.example.com/posts",
     "build": [
       {
@@ -965,19 +965,22 @@
         ]
       }
     ],
-    "url": "https://api.example.com/posts?filter[title]=a%2Cb",
+    "url": "https://api.example.com/posts?filter[title]=a,b",
     "reads": [
       {
         "op": "getFilter",
         "args": [
           "title"
         ],
-        "equals": "a,b"
+        "equals": [
+          "a",
+          "b"
+        ]
       }
     ]
   },
   {
-    "name": "a comma inside one item of a multi-value array is escaped, the separator commas stay raw",
+    "name": "a comma inside one item of a multi-value array flattens into the list",
     "base": "https://api.example.com/posts",
     "build": [
       {
@@ -991,7 +994,7 @@
         ]
       }
     ],
-    "url": "https://api.example.com/posts?filter[title]=a%2Cb,c",
+    "url": "https://api.example.com/posts?filter[title]=a,b,c",
     "reads": [
       {
         "op": "getFilter",
@@ -999,7 +1002,8 @@
           "title"
         ],
         "equals": [
-          "a,b",
+          "a",
+          "b",
           "c"
         ]
       }
@@ -1070,19 +1074,23 @@
     ]
   },
   {
-    "name": "parsing a percent-encoded in-value comma round-trips the exact value",
+    "name": "a percent-encoded comma parses as a separator, like a raw one",
     "base": "https://api.example.com/posts?filter[title]=a%2Cb",
     "build": [],
-    "url": "https://api.example.com/posts?filter[title]=a%2Cb",
+    "url": "https://api.example.com/posts?filter[title]=a,b",
     "reads": [
       {
         "op": "getFilter",
         "args": [
           "title"
         ],
-        "equals": "a,b"
+        "equals": [
+          "a",
+          "b"
+        ]
       }
-    ]
+    ],
+    "readsFrom": "base"
   },
   {
     "name": "a raw comma in a parsed value is treated as the OR-separator, not literal content",
@@ -1494,7 +1502,7 @@
     ]
   },
   {
-    "name": "the relative forms keep percent-encoded values verbatim",
+    "name": "the relative forms render the list separator raw",
     "base": "/posts",
     "build": [
       {
@@ -1505,12 +1513,12 @@
         ]
       }
     ],
-    "url": "/posts?filter[title]=a%2Cb",
+    "url": "/posts?filter[title]=a,b",
     "reads": [
       {
         "op": "toRequestUri",
         "args": [],
-        "equals": "/posts?filter[title]=a%2Cb"
+        "equals": "/posts?filter[title]=a,b"
       }
     ]
   },
@@ -1896,6 +1904,93 @@
           "a",
           "b"
         ]
+      }
+    ]
+  },
+  {
+    "name": "a server-normalised query string still parses as a list",
+    "base": "https://api.example.com/posts?filter%5Bstatus%5D=published%2Cdraft",
+    "build": [],
+    "url": "https://api.example.com/posts?filter[status]=published,draft",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getFilter",
+        "args": [
+          "status"
+        ],
+        "equals": [
+          "published",
+          "draft"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "a server-normalised sort still parses as separate axes",
+    "base": "https://api.example.com/posts?sort=priority%2C-created_at",
+    "build": [],
+    "url": "https://api.example.com/posts?sort=priority,-created_at",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getSorts",
+        "args": [],
+        "equals": [
+          {
+            "attribute": "priority",
+            "direction": "asc"
+          },
+          {
+            "attribute": "created_at",
+            "direction": "desc"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "a server-normalised include still parses as a list",
+    "base": "https://api.example.com/posts?include=author%2Ctags",
+    "build": [],
+    "url": "https://api.example.com/posts?include=author,tags",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getIncludes",
+        "args": [],
+        "equals": [
+          "author",
+          "tags"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "removeFilterValue works on a server-normalised list",
+    "base": "https://api.example.com/posts?filter%5Ba%5D=1%2C2",
+    "build": [
+      {
+        "op": "removeFilterValue",
+        "args": [
+          "a",
+          "1"
+        ]
+      }
+    ],
+    "url": "https://api.example.com/posts?filter[a]=2"
+  },
+  {
+    "name": "a comma in a scalar param stays literal (nothing splits it)",
+    "base": "https://api.example.com/posts?q=Smith%2C%20John&page[size]=25",
+    "build": [],
+    "url": "https://api.example.com/posts?q=Smith%2C%20John&page[size]=25",
+    "readsFrom": "base",
+    "reads": [
+      {
+        "op": "getSearch",
+        "args": [],
+        "equals": "Smith, John"
       }
     ]
   }

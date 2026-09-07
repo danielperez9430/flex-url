@@ -7,16 +7,24 @@
  *   RAW on output — this matches apiable's own idiom and its generated
  *   pagination links.
  * - Every individual value is percent-encoded with `encodeURIComponent`
- *   *before* being joined into a list. Because `encodeURIComponent` escapes
- *   `,`, `[`, `]`, ` `, `&`, `=`, `%` and non-ASCII characters, a literal
- *   comma/bracket/space/etc. *inside* one value can never be confused with
- *   the raw commas/brackets we use as structural separators.
- * - Parsing is the exact inverse: values are split on RAW commas first
- *   (never on a decoded/`%2C` comma), then each piece is individually
- *   `decodeURIComponent`-ed. Keys are decoded as a whole before their
- *   bracket structure is parsed, so `filter[status]` and the percent-encoded
- *   `filter%5Bstatus%5D` (as used by apiable's own pagination links) both
- *   parse identically.
+ *   *before* being joined into a list, so a literal bracket/space/`&`/`=`/`%`
+ *   inside one value can never be confused with the structural characters.
+ * - A COMMA IS ALWAYS A SEPARATOR in a list-valued param, whether it arrives
+ *   raw or as `%2C`. Lists are decoded first and split afterwards, and a comma
+ *   inside a value is emitted raw rather than escaped. apiable does the same
+ *   thing — `explode(',', $decodedValue)` for `filter`, `sort`, `include`,
+ *   `fields` and `appends` — so `%2C` and `,` were never distinguishable
+ *   server-side, and pretending otherwise made flex-url report one opaque
+ *   value for a URL the backend filters by several. It also could not survive
+ *   a round-trip: Symfony's `normalizeQueryString()` (behind Laravel's
+ *   `fullUrl()`, and so behind every Inertia response) rewrites `filter[a]=1,2`
+ *   as `filter%5Ba%5D=1%2C2`. A comma inside a single value is therefore not
+ *   representable — the same limitation as OpenAPI's `style: form,
+ *   explode: false`. Scalar params (`q`, `page[...]`, `param()`) are
+ *   unaffected: nothing splits them, so their commas stay literal.
+ * - Keys are decoded as a whole before their bracket structure is parsed, so
+ *   `filter[status]` and the percent-encoded `filter%5Bstatus%5D` (as used by
+ *   apiable's own pagination links) both parse identically.
  * - `=` is never assumed inside a key/value pair until *after* splitting on
  *   the first raw `=` — decoding before splitting (a v1 bug) would let an
  *   encoded `%3D` inside a value be mistaken for the key/value separator.
@@ -84,20 +92,28 @@ export function decodeValue(raw: string): string {
   return UTF8_DECODER.decode(Uint8Array.from(bytes));
 }
 
-/** Encode a list of values into their raw-comma-joined wire representation. */
+/**
+ * Encode a list of values into their comma-joined wire representation.
+ *
+ * A comma inside a value is *not* escaped, because in list position there is
+ * nothing to escape it from: the server splits the decoded value on every
+ * comma, so `%2C` and `,` mean the same thing to it. Emitting the comma raw
+ * keeps `toString()` idempotent — escaping it would render `a%2Cb` first and
+ * `a,b` after a round-trip.
+ */
 export function encodeList(values: readonly string[]): string {
-  return values.map(encodeValue).join(',');
+  return values.map(value => encodeValue(value).replaceAll('%2C', ',')).join(',');
 }
 
 /**
- * Split a raw (still percent-encoded) value on literal commas — never on a
- * decoded `%2C` — then decode each resulting piece individually. An empty
- * raw string yields an empty list rather than `['']`.
+ * Decode a raw value, then split it on every comma — a comma is a separator
+ * however it was encoded. An empty raw string yields an empty list rather
+ * than `['']`.
  */
 export function decodeList(raw: string): string[] {
   if (raw === '') return [];
 
-  return raw.split(',').map(decodeValue);
+  return decodeValue(raw).split(',');
 }
 
 /** Encode a single key segment (attribute/type/operator name) for use inside brackets. */
