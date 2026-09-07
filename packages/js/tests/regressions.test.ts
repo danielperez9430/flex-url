@@ -13,6 +13,7 @@
  */
 import {describe, expect, it} from 'vitest';
 
+import {decodeList, encodeList} from '../src/encoding.js';
 import {flexUrl} from '../src/index.js';
 
 describe('v1 regressions', () => {
@@ -101,4 +102,26 @@ describe('v1 regressions', () => {
     expect(base.toString()).toBe('/posts');
     expect(withFilter.toString()).toBe('/posts?filter[status]=published');
   });
+});
+
+describe('list encoding round-trips', () => {
+  // `decodeList`/`encodeList` must be stable under repetition: whatever a value
+  // decodes to has to survive being re-encoded and decoded again. Encoding a
+  // comma as `%2C` broke this — it rendered `a%2Cb` once and `a,b` thereafter —
+  // and nothing else in the suite would have caught it, because every fixture
+  // starts from a canonical URL rather than an arbitrary one.
+  const inputs = [
+    'a,b', 'a%2Cb', 'a%2Cb,c', '', ',', ',,', 'a,,b', 'x%252Cy',
+    'Smith%2C%20John', 'a+b,c', '20%,b', '%FF,a', 'é,ü', 'a%3Db,c',
+  ];
+
+  for (const input of inputs) {
+    it(`is stable for ${JSON.stringify(input)}`, () => {
+      const once = decodeList(input);
+      const twice = decodeList(encodeList(once));
+
+      expect(twice).toEqual(once);
+      expect(encodeList(twice)).toBe(encodeList(once));
+    });
+  }
 });

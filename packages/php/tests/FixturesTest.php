@@ -36,6 +36,11 @@ class FixturesTest extends TestCase
 
         $this->assertSame($testCase['url'], $builder->toString());
 
+        // Re-parsing the canonical output must reproduce it byte for byte. Asserted
+        // for every case rather than a chosen few: it is the invariant that breaks
+        // first when encoding and parsing stop being exact inverses of each other.
+        $this->assertSame($testCase['url'], FlexUrl::make($testCase['url'])->toString());
+
         if (! isset($testCase['reads'])) {
             return;
         }
