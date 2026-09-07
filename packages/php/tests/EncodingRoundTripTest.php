@@ -16,6 +16,8 @@ use PHPUnit\Framework\TestCase;
  * a comma as `%2C` broke this — it rendered `a%2Cb` once and `a,b` thereafter —
  * and nothing else in the suite would have caught it, because every fixture
  * starts from a canonical URL rather than an arbitrary one.
+ *
+ * @SuppressWarnings("PHPMD.StaticAccess")
  */
 class EncodingRoundTripTest extends TestCase
 {

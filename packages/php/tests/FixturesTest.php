@@ -14,6 +14,8 @@ use PHPUnit\Framework\TestCase;
  * are applied in order to a fresh builder from `base`, the result is
  * compared against `url`, and (when present) every `reads` assertion is
  * checked against a fresh builder parsed straight back from that `url`.
+ *
+ * @SuppressWarnings("PHPMD.StaticAccess")
  */
 class FixturesTest extends TestCase
 {
