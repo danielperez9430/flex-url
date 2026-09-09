@@ -4,7 +4,7 @@
 
 An immutable, fluent URL builder/parser for the [Laravel Apiable](https://github.com/open-southeners/laravel-apiable) request-query grammar. Zero runtime dependencies, framework-free.
 
-[![packagist version](https://img.shields.io/packagist/v/open-southeners/flex-url)](https://packagist.org/packages/open-southeners/flex-url) [![required php version](https://img.shields.io/packagist/php-v/open-southeners/flex-url)](https://www.php.net/supported-versions.php) [![Test](https://github.com/open-southeners/flex-url/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/open-southeners/flex-url/actions/workflows/tests.yml) [![codecov](https://codecov.io/gh/open-southeners/flex-url/branch/main/graph/badge.svg)](https://codecov.io/gh/open-southeners/flex-url) [![Edit on VSCode online](https://img.shields.io/badge/vscode-edit%20online-blue?logo=visualstudiocode)](https://vscode.dev/github/open-southeners/flex-url)
+[![packagist version](https://img.shields.io/packagist/v/open-southeners/flex-url)](https://packagist.org/packages/open-southeners/flex-url) [![required php version](https://img.shields.io/packagist/php-v/open-southeners/flex-url)](https://www.php.net/supported-versions.php) [![Test](https://github.com/open-southeners/flex-url/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/open-southeners/flex-url/actions/workflows/tests.yml) [![codecov](https://codecov.io/gh/open-southeners/flex-url/branch/main/graph/badge.svg?token=N3L3934QEU)](https://codecov.io/gh/open-southeners/flex-url) [![Edit on VSCode online](https://img.shields.io/badge/vscode-edit%20online-blue?logo=visualstudiocode)](https://vscode.dev/github/open-southeners/flex-url)
 
 ## Installation
 
